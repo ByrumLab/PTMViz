@@ -94,6 +94,9 @@ if (!requireNamespace("limma", quietly = TRUE))
 if (!requireNamespace("gplots", quietly = TRUE))
   install.packages("gplots") else library(gplots)
 
+# BiocManager::install("minfi")
+# BiocManager::install("edgeR")
+
 #### Shiny App####
 options(stringsAsFactors = F)
 ####Shiny UI####
@@ -168,7 +171,8 @@ ui <-shinyUI(
                   box(title= "Histone_data_table", width = 9,  dataTableOutput("Histone_data_table"))
                   ),
                 fluidRow(
-                  box(dataTableOutput("DFTable"))),
+                  box(dataTableOutput("DFTable"),
+                      width = 12)),
                 fluidRow(
                   box(
                     width = 12,
@@ -501,13 +505,6 @@ server <- function(input, output){
  
   ####Creating Bar Graphs for Histone PTMS####
   
-  
-  observeEvent(input$tst,{
-    print(input$Sample_BP)
-  })
-  
-  
-  
   Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter(Histone %in% input$PTM_Barplot)})
   
   P_Graph_Prep <- function(z,Tissue){
@@ -642,20 +639,24 @@ server <- function(input, output){
   } 
 
   ####Function for Median Normalizing the dataset####
-  Median_Normalization <- function(x){
-    VO1 <-log1p(x)
-    
-    colMedians <- colMedians(as.matrix(VO1))
-    Max_Median <- max(colMedians)
-    adjusted_Medians <- Max_Median/colMedians
-    DF_norm_VO <- VO1
-    
-    for(i in 1:length(adjusted_Medians)){
-      DF_norm_VO[,i] <- adjusted_Medians[i]*VO1[,i]
-    }
-    
-    return(DF_norm_VO)
-  }
+  # Median_Normalization <- function(x){
+  #   VO1 <-x
+  #   
+  #   #Median Normalizing the Data
+  #   colMedians <- colMedians(as.matrix(VO1))
+  #   Max_Median <- max(colMedians)
+  #   adjusted_Medians <- Max_Median/colMedians
+  #   DF_norm_VO <- VO1
+  # 
+  #   for(i in 1:length(adjusted_Medians)){
+  #     DF_norm_VO[,i] <- adjusted_Medians[i]*VO1[,i]
+  #   }
+  # 
+  #   #Log transforming the data
+  #   DF_norm_VO <- log1p(DF_norm_VO)
+  # 
+  #   return(DF_norm_VO)
+  # }
   
    
   ####LIMMA####
@@ -702,7 +703,8 @@ server <- function(input, output){
   
   Protein_Data <- reactive({Process_Protein_data(Raw_Protein())})
   Protein_Data_Values_Only <- reactive({Values_only(Protein_Data())})
-  Normal_PData <- reactive({Median_Normalization(Protein_Data_Values_Only())})
+  Normal_PData <- reactive({Protein_Data_Values_Only()})
+  # Normal_PData <- reactive({Median_Normalization(Protein_Data_Values_Only())})
   results.coef1 <- reactive({LIMMA(Normal_PData())})
   results.coef1_Sig <- reactive({results.coef1()[results.coef1()$logFC >= input$logFC_Sig[2] | results.coef1()$logFC <= input$logFC_Sig[1] & 
                                                    if(input$P.Value == "P-Value"){results.coef1()$P.Value < input$P.Val_thresh} else {results.coef1()$adj.P.Val < input$P.Val_thresh},]
@@ -768,7 +770,11 @@ server <- function(input, output){
   })
   
   output$MDS <- renderPlot({
-    plotMDS(Normal_PData(), labels = colnames(Normal_PData()), col=c(rep("blue",5), rep("red",5)))
+    plotMDS(Normal_PData(), labels = colnames(Normal_PData()), col=c(rep("blue",length(DFP3()$Treatment)), rep("red",5)))
+  })
+  
+  observeEvent(input$tst,{
+    print(levels())
   })
    
   ####Protein: Volcano Plot and Data####
