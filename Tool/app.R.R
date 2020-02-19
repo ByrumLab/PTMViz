@@ -36,8 +36,8 @@ library(e1071)
    install.packages("BiocManager")
   library(edgeR)
 
- if (!require(installr)) install.packages('installr')
- library(installr)
+ # if (!require(installr)) install.packages('installr')
+ # library(installr)
 
  if (!require(devtools)) install.packages("backports")
  library(backports)
@@ -301,60 +301,58 @@ server <- function(input, output){
     else{
       return(df)
     }
-  })
+  })  
   ####Places the uplaod into an object called Raw_Data()####
   Raw_Data <- reactive({
     req(input$file1, input$header, file.exists(input$file1$datapath))
     read.csv(input$file1$datapath, header = input$header)
   })  
   ####Creates a Dataframe that will be used to edit the Raw_data() dataframe####
-  DF1 <- reactive({data.frame(File.Name= unique(Raw_Data()$MS.MS_sample_name),
-                              Sample.Group= letters[1:length(unique(Raw_Data()$MS.MS_sample_name))],
-                              Replicate= 1:length(unique(Raw_Data()$MS.MS_sample_name)),
-                              Experimental.Group= factor(c("Control", "Treatment"), labels = c(input$name_control, input$name_treatment)),
-                              stringsAsFactors= F,
-                              Custom.ID= letters[1:length(unique(Raw_Data()$MS.MS_sample_name))])})
+  DF1 <- reactive({data.frame(File.Name = unique(Raw_Data()$MS.MS_sample_name),
+                              Sample = letters[1:length(unique(Raw_Data()$MS.MS_sample_name))],
+                              Replicate = 1:length(unique(Raw_Data()$MS.MS_sample_name)),
+                              Experimental_Group = factor(c("Control", "Treatment"), labels = c(input$name_control, input$name_treatment)),
+                              stringsAsFactors = F)})
   
   output$AC <- renderTable({
     req(Raw_Data())
     Raw_Data()
   })
-  
-  observeEvent(input$tst,{
-    print(colnames(DF1()))
-    print(DF1()$File.Name)
-  })
     
   ###Creates the handsontable where DF1() will be edited####
   DF2 <- reactive({
     req(DF1())
-    rhandsontable(DF1()) %>% hot_col("File.Name", readOnly = T) %>% hot_col("Sample.Group", type = "autocomplete")
-    })
-  
-  output$AB<- renderRHandsontable({DF2()})
+    rhandsontable(DF1()) %>% hot_col("File.Name", readOnly = T) %>% hot_col("Sample", type = "autocomplete")})
     
   ####Changes the handsontable back into a dataframe####
   DF3 <- eventReactive(input$Update, {hot_to_r(input$AB)})
     
+  ####Outputs the Rhandsontable ####
+  output$AB<- renderRHandsontable({DF2()})
+  
   output$AA <- renderDataTable({
     DF3()})
-  ####Outputs the Rhandsontable ####
   
   Blank <- function(x){
+    
+    print(colnames(x))
+    print(colnames(DF3()))
     
     for(i in 1:length(unique(x$MS.MS_sample_name))){
       HD <- x[x$MS.MS_sample_name %in% DF3()$File.Name[i],]
       HD$Replicate <- DF3()$Replicate[i]
-      HD$MS.MS_sample_name <- mapvalues(HD$MS.MS_sample_name, from = HD$MS.MS_sample_name[1], to = as.character(DF3()$Sample.Group[i]))
-      HD$Treatment <- DF3()$Experimental.Group[i]
-      HD$Custom.ID <- DF3()$Custom.ID[i]
+      HD$MS.MS_sample_name <- mapvalues(HD$MS.MS_sample_name, from = HD$MS.MS_sample_name[1], to = as.character(DF3()$Sample[i]))
+      HD$Treatment <- DF3()$Experimental_Group[i]
       if(!exists("Histone_data")){
         Histone_data <- HD
       } else {
         Histone_data <- rbind(Histone_data, HD)
       }
     }
-
+    
+    print(colnames(Histone_data))
+    print(Histone_data$PTM_corrected[1])
+    
     PTMs <- data.frame(matrix(ncol=2, nrow = length(Histone_data$PTM_residues)))
     for( i in 1: length(Histone_data$PTM_corrected)){
       PTMs[i,] <- t(matrix(unlist(strsplit(as.character(Histone_data$PTM_corrected[i]), split= ":" ))))
@@ -370,9 +368,9 @@ server <- function(input, output){
 
     
     Histone_data <- cbind(Histone_data,PTMs,Histone)
-    Histone_data2 <- data.frame(Histone_data$Custom.ID, Histone_data$MS.MS_sample_name, Histone_data$Treatment, Histone_data$Replicate,Histone_data$Histone2, Histone_data$Residue,
+    Histone_data2 <- data.frame(Histone_data$MS.MS_sample_name, Histone_data$Treatment, Histone_data$Replicate,Histone_data$Histone2, Histone_data$Residue,
                                 Histone_data$PTM, Histone_data$Intensity, Histone_data$Total_intensity, Histone_data$Abundance, Histone_data$betaValue, Histone_data$MValue)
-    colnames(Histone_data2) <- c("Custom ID", "Sample Group", "Treatment", "Replicate", "Histone", "PTM Residue", "PTM", "Intensity","Total Inensity", "Abundance",
+    colnames(Histone_data2) <- c("Sample", "Treatment", "Replicate", "Histone", "PTM Residue", "PTM", "Intensity","Total Inensity", "Abundance",
                                  "Beta Value", "M Value")
 
     
@@ -764,6 +762,10 @@ server <- function(input, output){
     plotMDS(Normal_PData(), labels = colnames(Normal_PData()), col=c(rep("blue",length(DFP3()$Treatment)), rep("red",5)))
   })
   
+  observeEvent(input$tst,{
+    print(levels())
+  })
+   
   ####Protein: Volcano Plot and Data####
   
   output$Volcano <- renderPlotly({
