@@ -166,20 +166,33 @@ ui <-shinyUI(
         ####PTM Page####
         tabItem(tabName = "PTM", h1("Post Translational Modification"),
                 fluidRow(
-                  box( width = 3, uiOutput("picker1"), uiOutput("picker2"), uiOutput("picker3"), uiOutput("picker4"), 
-                       uiOutput("Dif_Anal_choice1")),
-                  box(title= "Histone_data_table", width = 9,  dataTableOutput("Histone_data_table"))
-                  ),
-                fluidRow(
-                  box(dataTableOutput("DFTable"),
-                      width = 12)),
+                  # box( width = 3, uiOutput("picker1"), uiOutput("picker2"), uiOutput("picker3"), uiOutput("picker4")
+                  #      ),
+                  box(
+                    width = 12, 
+                    title= "Histone_data_table", 
+                    fluidRow(
+                      column(width =3, uiOutput("picker1")),
+                      column(width =3, uiOutput("picker2")),
+                      column(width =3, uiOutput("picker3")),
+                      column(width =3, uiOutput("picker4"))),
+                     dataTableOutput("Histone_data_table"))),
                 fluidRow(
                   box(
                     width = 12,
-                    uiOutput("Sample_PTM_Barplot"),
-                    uiOutput("PTM_Barplot"),
+                    fluidRow(column(width = 3, uiOutput("Sample_PTM_Barplot")),
+                             column(width = 3, uiOutput("PTM_Residue_BP")),
+                             column(width = 3, uiOutput("PTM_Trt")),
+                             column(width = 3, uiOutput("PTM_Barplot"))),
+                    checkboxInput("PTM_mean_chkbx", label = "View Individual Samples", value = F),
                     plotOutput("PTM_Graph"),
                     downloadButton("PTM_BP", "Download"))),
+                fluidRow(
+                  box(
+                    uiOutput("Dif_Anal_choice1"),
+                    dataTableOutput("DFTable"),
+                      width = 12)),
+                
                 fluidRow(
                   box(
                     title = "Differential Analysis Heatmap",
@@ -190,12 +203,7 @@ ui <-shinyUI(
         ####Protein Page####
         tabItem(tabName = "Data", h2("Protein"),
                 fluidRow(
-                  box(title =" Volcano Plot", plotlyOutput("Volcano"),                        
-                      sliderInput("logFC_Sig", "LogFC Significance Threshhold", -4, 4, c(-2,2)),
-                      sliderInput("P.Val_thresh", "P-Value Threshhold", 0, 1, 0.05),
-                      radioButtons("P.Value","P-Value",c("P-Value","Adj P-Value"), inline = T),
-                      downloadButton("VC_plot", "Download")),
-                  tabBox(title = "Data",
+                  tabBox(title = "Data", width = 12,
                          tabPanel("All Data", 
                                   dataTableOutput("Datatable")),
                          tabPanel("Significant Data",
@@ -204,6 +212,14 @@ ui <-shinyUI(
                                   dataTableOutput("Datatable_I")),
                          tabPanel("Significant Intesnity Data",
                                   dataTableOutput("Datatable_I_Sig")))),
+                fluidRow(
+                  box( width = 12, title =" Volcano Plot",
+                            fluidRow(
+                              column(width = 4, sliderInput("logFC_Sig", "LogFC Significance Threshhold", -4, 4, c(-2,2))),
+                              column(width = 4, sliderInput("P.Val_thresh", "P-Value Threshhold", 0, 1, 0.05)),
+                              column(width = 4, radioButtons("P.Value","P-Value",c("P-Value","Adj P-Value"), inline = T))),
+                            fluidRow(plotlyOutput("Volcano"),
+                                     downloadButton("VC_plot", "Download")))),
                 fluidRow(
                   tabBox(width = 12,
                          tabPanel("Heatmap Significant Data", radioButtons("scl2", "Choose Scale",c('none','column','row'), inline = T), plotlyOutput("Heatmap_Sig"), downloadButton("HM_Sig", "Download")),
@@ -217,60 +233,74 @@ ui <-shinyUI(
         ####PTM Upload Page####
         tabItem(tabName = "Upload1", h2("PTM Upload"),
                 fluidRow(
-                  box( width = 3,
-                       fileInput("file1", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
-                       tags$hr(),
-                       checkboxInput("header","Header",T),
-                       radioButtons("sep", "Seperator", choices = c(Comma = ",", 
-                                                                    Semicolon =";",
-                                                                    Tab = "\t"),
-                                    selected = ","),
-                       radioButtons("quote", "Quote", 
-                                    choices = c(None = "",
-                                                "Double Quote" = '"',
-                                                "Single Quote" = "'"),
-                                    selected = '"'),
-                       tags$hr(),
-                       radioButtons("disp", "Display",
-                                    choices = c(Head = "head",
-                                                All = "all"),
-                                    selected = "head"),
-                       actionButton("PTM_Upload_Bttn", "Upload")
-                  ),
-                  box(width = 9, tableOutput("contents"))),
+                  box( width =12,
+                    column( width = 3,
+                      fileInput("file1", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
+                           tags$hr(),
+                           checkboxInput("header","Header",T),
+                           radioButtons("sep", "Seperator", choices = c(Comma = ",", 
+                                                                        Semicolon =";",
+                                                                        Tab = "\t"),
+                                        selected = ","),
+                           radioButtons("quote", "Quote", 
+                                        choices = c(None = "",
+                                                    "Double Quote" = '"',
+                                                    "Single Quote" = "'"),
+                                        selected = '"'),
+                           tags$hr(),
+                           radioButtons("disp", "Display",
+                                        choices = c(Head = "head",
+                                                    All = "all"),
+                                        selected = "head"),
+                           actionButton("PTM_Upload_Bttn", "Upload")),
+                    column( width = 9,
+                      tableOutput("contents")))),
                 fluidRow(
-                  box(title = "Edit", textInput('name_control', label =h3("Name of Control"), value = "Control"),textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment") ,rHandsontableOutput("AB"),
-                      actionButton("Update", label = "Update Data")),
-                  box(dataTableOutput("AA")))),
+                  box( width = 12,
+                    column( width = 6,
+                      title = "Edit", 
+                      column(width = 3, textInput('name_control', label =h3("Name of Control"), value = "Control")),
+                      column(width = 3, textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment")),
+                      rHandsontableOutput("AB"),
+                           actionButton("Update", label = "Update Data")),
+                    column( width = 6,
+                      dataTableOutput("AA"))))),
         
         ####Protein Upload Page####
         tabItem(tabName = "Upload2", h2("Protein Upload"),
                 fluidRow(
-                  box( width = 3,
-                       fileInput("file2", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
-                       tags$hr(),
-                       checkboxInput("header2","Header",T),
-                       radioButtons("sep2", "Seperator", choices = c(Comma = ",", 
+                  box( width =12,
+                    column( width = 3,
+                      fileInput("file2", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
+                      tags$hr(),
+                      checkboxInput("header2","Header",T),
+                      radioButtons("sep2", "Seperator", choices = c(Comma = ",", 
                                                                     Semicolon =";",
                                                                     Tab = "\t"),
-                                    selected = ","),
-                       radioButtons("quote2", "Quote", 
-                                    choices = c(None = "",
-                                                "Double Quote" = '"',
-                                                "Single Quote" = "'"),
-                                    selected = '"'),
-                       tags$hr(),
-                       radioButtons("disp2", "Display",
-                                    choices = c(Head = "head",
-                                                All = "all"),
-                                    selected = "head")),
-                  
-                  box(width = 9, tableOutput("contents2"))),
+                                   selected = ","),
+                      radioButtons("quote2", "Quote", 
+                                   choices = c(None = "",
+                                               "Double Quote" = '"',
+                                               "Single Quote" = "'"),
+                                   selected = '"'),
+                      tags$hr(),
+                      radioButtons("disp2", "Display",
+                                   choices = c(Head = "head",
+                                               All = "all"),
+                                   selected = "head")),
+                    column(width = 9, tableOutput("contents2"))),
                 fluidRow(
-                  box(title = "Edit2", rHandsontableOutput("Protein_HOT"),
-                      actionButton("Update_PHOT", label = "Update Data"),
-                      textOutput("Protein_Text")),
-                  box(dataTableOutput("PHOT_DT"))))
+                  box(title = "Edit2", width = 12,
+                    column(width = 6,
+                           column(width = 3, textInput('name_control_protein', label =h3("Name of Control"), value = "Control")),
+                           column(width = 3, textInput('name_treatment_protein', label = h3("Name of Treatment"), value = "Treatment")),
+                           rHandsontableOutput("Protein_HOT"),
+                           actionButton("Update_PHOT", label = "Update Data"),
+                           textOutput("Protein_Text")),
+                    column(width = 6, dataTableOutput("PHOT_DT")))
+                  )
+                )
+                )
         ######
 
         )
@@ -320,10 +350,7 @@ server <- function(input, output){
     Raw_Data()
   })
   
-  observeEvent(input$tst,{
-    print(colnames(DF1()))
-    print(DF1()$File.Name)
-  })
+
     
   ###Creates the handsontable where DF1() will be edited####
   DF2 <- reactive({
@@ -394,9 +421,16 @@ server <- function(input, output){
   output$Dif_Anal_choice1 <- renderUI({selectInput("Dif_Anal_choice1","Dif_Anal_choice1", choices=levels(factor(Histone_PTM2()$Sample)))})
   
   # output$Sample_PTM_Barplot <- renderUI({selectInput("Sample_PTM_Barplot", "Sample Selction", choices = levels(factor(Histone_PTM2()$Sample)))})
-  output$Sample_PTM_Barplot <- renderUI({pickerInput("Sample_BP","Sample Selection", choices=levels(factor(Histone_PTM2()$Sample)), options = list(`actions-box` = TRUE),multiple = T)})
+  output$Sample_PTM_Barplot <- renderUI({pickerInput("Sample_BP","Sample Selection", choices=levels(factor(Histone_PTM2()$Sample)), options = list(`actions-box` = TRUE),multiple = T,
+                                                     selected = levels(factor(Histone_PTM2()$Sample)))})
   
   output$PTM_Barplot <- renderUI({selectInput("PTM_Barplot", "Histone Selction", choices = levels(factor(Histone_PTM2()$Histone)))})
+  
+  output$PTM_Trt <- renderUI({pickerInput("Treatment_BP","Experimental Group Selection", choices=levels(factor(Histone_PTM2()$Treatment)), options = list(`actions-box` = TRUE),multiple = T,
+                                          selected = levels(factor(Histone_PTM2()$Treatment)))})
+  
+  output$PTM_Residue_BP <- renderUI({pickerInput("Residue_BP","Residue Selection", choices=levels(factor(Protein_Graph_Table()$"PTM Residue")), options = list(`actions-box` = TRUE),multiple = T,
+                                                 selected = levels(factor(Protein_Graph_Table()$"PTM Residue")))})
    
   ####Histone_PTM Table####
   PTM_filter <- function(x){
@@ -507,22 +541,36 @@ server <- function(input, output){
  
   ####Creating Bar Graphs for Histone PTMS####
   
-  Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter(Histone %in% input$PTM_Barplot)})
+  Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter(Histone %in% input$PTM_Barplot & c(Treatment %in% input$Treatment_BP))})
+  # Protein_Graph_Table2 <- reactive({Histone_PTM2()() %>% filter(Histone %in% "Histone H3.1" & Sample.Group %in% "Nucleus Accumbens" & Treatment %in% c("Control", "Treatment") & PTM.Residue %in% "k14")})
+  # Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter("Sample Groups" %in% input$Sample_BP & Treatment %in% input$Treatment_BP & Histone %in% input$PTM_Barplot)})
   
-  P_Graph_Prep <- function(z,Tissue){
+  # PGT <- reactive({Protein_Graph_Table() %>% filter("PTM Residue" %in% input$Residue_BP)})
+  
+  observeEvent(input$tst,{
+    print(input$PTM_Barplot)
+    print(input$Treatment_BP)
+    print(input$Sample_BP)
+    print(input$Residue_BP)
+
+  })
+  
+  P_Graph_Prep <- function(z, Tissue, Residue){
 
     z$PTM = trimws(z$PTM)
     
     aggregatedDF = aggregate(x = z$'Beta Value', FUN = mean, 
                              by = list(tissue = z$Sample,
                                        treatment = z$Treatment, 
+                                       names = z$"Custom ID",
                                        position = z$'PTM Residue', 
                                        modification = z$PTM))
     colnames(aggregatedDF)[colnames(aggregatedDF) =="x"] = "Mean Beta-Value"
-    temp = aggregatedDF[aggregatedDF$tissue %in% c(Tissue),]
+    temp = aggregatedDF[aggregatedDF$tissue %in% c(Tissue) & aggregatedDF$position %in% c(Residue),]
     temp$sample <- paste(temp$tissue, temp$treatment, sep = "_")
     temp$modification = factor(temp$modification, levels = c("Acetyl", "Methyl", "Dimethyl", "Trimethyl", "Unmodified"))
     temp$position = factor(temp$position, levels = unique(temp$position)[order(as.numeric(substring(unique(temp$position),2)))])
+    
     
     gg_color_hue <- function(n) {
       hues = seq(15, 375, length = n + 1)
@@ -533,7 +581,7 @@ server <- function(input, output){
     clrs = gg_color_hue(5)
     names(clrs) = modificationList
     
-    PTM_barplot <- ggplot(temp, aes(x = sample, y = `Mean Beta-Value`, fill = modification)) +
+    PTM_barplot <- ggplot(temp, aes(x = if(input$PTM_mean_chkbx == F){sample}else{names}, y = `Mean Beta-Value`, fill = modification)) +
       geom_bar(stat = 'identity', position = 'fill') + facet_grid(~ position) +
       scale_fill_manual("Legend", values = clrs) +
       scale_y_continuous(labels = scales::percent_format()) +
@@ -542,7 +590,10 @@ server <- function(input, output){
     return(PTM_barplot)
   }
   
-  BGraph_PTM <- reactive({P_Graph_Prep(Protein_Graph_Table(),input$Sample_BP)})
+  BGraph_PTM <- reactive({
+    req(Protein_Graph_Table())
+    P_Graph_Prep(Protein_Graph_Table(), input$Sample_BP ,input$Residue_BP)
+    })
   
   
   output$PTM_Graph <- renderPlot({
@@ -641,26 +692,6 @@ server <- function(input, output){
   } 
 
   ####Function for Median Normalizing the dataset####
-  # Median_Normalization <- function(x){
-  #   VO1 <-x
-  #   
-  #   #Median Normalizing the Data
-  #   colMedians <- colMedians(as.matrix(VO1))
-  #   Max_Median <- max(colMedians)
-  #   adjusted_Medians <- Max_Median/colMedians
-  #   DF_norm_VO <- VO1
-  # 
-  #   for(i in 1:length(adjusted_Medians)){
-  #     DF_norm_VO[,i] <- adjusted_Medians[i]*VO1[,i]
-  #   }
-  # 
-  #   #Log transforming the data
-  #   DF_norm_VO <- log1p(DF_norm_VO)
-  # 
-  #   return(DF_norm_VO)
-  # }
-  
-   
   ####LIMMA####
   LIMMA <- function(x){
     limma_data_frame <- x
