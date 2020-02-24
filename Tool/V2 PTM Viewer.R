@@ -259,8 +259,8 @@ ui <-shinyUI(
                   box( width = 12,
                     column( width = 6,
                       title = "Edit", 
-                      column(width = 3, textInput('name_control', label =h3("Name of Control"), value = "Control")),
-                      column(width = 3, textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment")),
+                      column(width = 6, textInput('name_control', label =h3("Name of Control"), value = "Control")),
+                      column(width = 6, textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment")),
                       rHandsontableOutput("AB"),
                            actionButton("Update", label = "Update Data")),
                     column( width = 6,
@@ -292,8 +292,8 @@ ui <-shinyUI(
                 fluidRow(
                   box(title = "Edit2", width = 12,
                     column(width = 6,
-                           column(width = 3, textInput('name_control_protein', label =h3("Name of Control"), value = "Control")),
-                           column(width = 3, textInput('name_treatment_protein', label = h3("Name of Treatment"), value = "Treatment")),
+                           column(width = 6, textInput('name_control_protein', label =h3("Name of Control"), value = "Control")),
+                           column(width = 6, textInput('name_treatment_protein', label = h3("Name of Treatment"), value = "Treatment")),
                            rHandsontableOutput("Protein_HOT"),
                            actionButton("Update_PHOT", label = "Update Data"),
                            textOutput("Protein_Text")),
@@ -339,18 +339,17 @@ server <- function(input, output){
   })  
   ####Creates a Dataframe that will be used to edit the Raw_data() dataframe####
   DF1 <- reactive({data.frame(File.Name= unique(Raw_Data()$MS.MS_sample_name),
-                              Sample.Group= letters[1:length(unique(Raw_Data()$MS.MS_sample_name))],
-                              Replicate= 1:length(unique(Raw_Data()$MS.MS_sample_name)),
+                              Sample.Group= NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
+                              Replicate= NA_integer_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
                               Experimental.Group= factor(c("Control", "Treatment"), labels = c(input$name_control, input$name_treatment)),
                               stringsAsFactors= F,
-                              Custom.ID= letters[1:length(unique(Raw_Data()$MS.MS_sample_name))])})
+                              Custom.ID= NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))])})
   
   output$AC <- renderTable({
     req(Raw_Data())
     Raw_Data()
   })
   
-
     
   ###Creates the handsontable where DF1() will be edited####
   DF2 <- reactive({
@@ -362,19 +361,41 @@ server <- function(input, output){
     
   ####Changes the handsontable back into a dataframe####
   DF3 <- eventReactive(input$Update, {hot_to_r(input$AB)})
+  
+  Custom_ID <- function(x){
+    
+    DF4 <- x
+    
+    for(i in 1:length(DF4$File.Name)){
+      if(is.na(DF4$Custom.ID[i])){
+        DF4$Custom.ID[i] <- paste(DF4$Sample.Group[i], DF4$Replicate[i], DF4$Experimental.Group[i], sep = "_")
+      } else {
+        next
+      }
+    }
+    return(DF4)
+  }
+    
+  
+  DF4 <- reactive({
+    Custom_ID(DF3())
+  })
     
   output$AA <- renderDataTable({
-    DF3()})
+    DF4()
+    })
+  
+
   ####Outputs the Rhandsontable ####
   
   Blank <- function(x){
     
     for(i in 1:length(unique(x$MS.MS_sample_name))){
-      HD <- x[x$MS.MS_sample_name %in% DF3()$File.Name[i],]
-      HD$Replicate <- DF3()$Replicate[i]
-      HD$MS.MS_sample_name <- mapvalues(HD$MS.MS_sample_name, from = HD$MS.MS_sample_name[1], to = as.character(DF3()$Sample.Group[i]))
-      HD$Treatment <- DF3()$Experimental.Group[i]
-      HD$Custom.ID <- DF3()$Custom.ID[i]
+      HD <- x[x$MS.MS_sample_name %in% DF4()$File.Name[i],]
+      HD$Replicate <- DF4()$Replicate[i]
+      HD$MS.MS_sample_name <- mapvalues(HD$MS.MS_sample_name, from = HD$MS.MS_sample_name[1], to = as.character(DF4()$Sample.Group[i]))
+      HD$Treatment <- DF4()$Experimental.Group[i]
+      HD$Custom.ID <- DF4()$Custom.ID[i]
       if(!exists("Histone_data")){
         Histone_data <- HD
       } else {
@@ -547,13 +568,7 @@ server <- function(input, output){
   
   # PGT <- reactive({Protein_Graph_Table() %>% filter("PTM Residue" %in% input$Residue_BP)})
   
-  observeEvent(input$tst,{
-    print(input$PTM_Barplot)
-    print(input$Treatment_BP)
-    print(input$Sample_BP)
-    print(input$Residue_BP)
 
-  })
   
   P_Graph_Prep <- function(z, Tissue, Residue){
 
@@ -666,38 +681,49 @@ server <- function(input, output){
   #### Creates a Hands on table for protein data####
   
   DFP1 <- reactive({data.frame(File.Name = colnames(Raw_Protein()[,-1]),
-                              Sample = letters[1:length(colnames(Raw_Protein()[,-1]))],
-                              Replicate = 1:length(colnames(Raw_Protein()[,-1])),
+                              Sample.Group = NA_character_[1:length(colnames(Raw_Protein()[,-1]))],
+                              Replicate = NA_integer_[1:length(colnames(Raw_Protein()[,-1]))],
                               Experimental.Group = factor(c("Control", "Treatment")),
-                              stringsAsFactors = F)})
+                              stringsAsFactors = F, 
+                              Custom.ID=  NA_character_[1:length(colnames(Raw_Protein()[,-1]))])})
   
   DFP2 <- reactive({
     req(DFP1())
-    rhandsontable(DFP1()) %>% hot_col("File.Name", readOnly = T) %>% hot_col("Sample", type = "autocomplete")})
+    rhandsontable(DFP1()) %>% hot_col("File.Name", readOnly = T) %>% hot_col("Sample.Group", type = "autocomplete")})
   
   output$Protein_HOT<- renderRHandsontable({DFP2()})
   
   DFP3 <- eventReactive(input$Update_PHOT, {hot_to_r(input$Protein_HOT)})
   
+  DFP4 <- reactive({Custom_ID(DFP3())})
+  
   output$PHOT_DT <- renderDataTable({
-    DFP3()})
+    DFP4()})
+  
+  observeEvent(input$tst,{
+    print(class(Custom_ID))
+    print(DFP3())
+    print(class(DFP3()))
+    print(DFP4())
+    print(class(DFP4()))
+  })
+  
   
   ####Create a values only DF####
   
   Values_only <- function(x){
     VO <- x[,-c(1:3)]
-    colnames(VO) <- paste(DFP3()$Sample, DFP3()$Replicate, sep = "_")
+    colnames(VO) <- paste(DFP4()$Sample, DFP4()$Replicate, sep = "_")
     rownames(VO) <- make.names(names = x[,1], unique = T)
     return(VO)
   } 
 
-  ####Function for Median Normalizing the dataset####
   ####LIMMA####
-  LIMMA <- function(x){
+  LIMMA <- function(x,y){
     limma_data_frame <- x
-    DFP3 <- DFP3()
+    DFP <- y
 
-    vec <- DFP3$Experimental.Group
+    vec <- DFP$Experimental.Group
     
 
     group <- factor(vec, levels=c("Control", "Treatment"))
@@ -727,7 +753,7 @@ server <- function(input, output){
   Protein_Data_Values_Only <- reactive({Values_only(Protein_Data())})
   Normal_PData <- reactive({Protein_Data_Values_Only()})
   # Normal_PData <- reactive({Median_Normalization(Protein_Data_Values_Only())})
-  results.coef1 <- reactive({LIMMA(Normal_PData())})
+  results.coef1 <- reactive({LIMMA(Normal_PData(),DFP4())})
   results.coef1_Sig <- reactive({results.coef1()[results.coef1()$logFC >= input$logFC_Sig[2] | results.coef1()$logFC <= input$logFC_Sig[1] & 
                                                    if(input$P.Value == "P-Value"){results.coef1()$P.Value < input$P.Val_thresh} else {results.coef1()$adj.P.Val < input$P.Val_thresh},]
     })
