@@ -624,7 +624,7 @@ server <- function(input, output){
   })
   
   output$PCA <- renderPlot({
-    autoplot(prcomp(Normal_PData()), shape = FALSE,  label.size = 4) + theme_classic()
+    autoplot(prcomp(Protein_Data_Values_Only()), shape = FALSE,  label.size = 4) + theme_classic()
   })
   
   
@@ -700,26 +700,18 @@ server <- function(input, output){
   output$PHOT_DT <- renderDataTable({
     DFP4()})
   
-  observeEvent(input$tst,{
-    print(class(Custom_ID))
-    print(DFP3())
-    print(class(DFP3()))
-    print(DFP4())
-    print(class(DFP4()))
-  })
-  
   
   ####Create a values only DF####
   
-  Values_only <- function(x){
+  Values_only <- function(x, y){
     VO <- x[,-c(1:3)]
-    colnames(VO) <- paste(DFP4()$Sample, DFP4()$Replicate, sep = "_")
+    colnames(VO) <- y$Custom.ID
     rownames(VO) <- make.names(names = x[,1], unique = T)
     return(VO)
   } 
 
   ####LIMMA####
-  LIMMA <- function(x,y){
+  LIMMA <- function(x,y,z){
     limma_data_frame <- x
     DFP <- y
 
@@ -744,16 +736,20 @@ server <- function(input, output){
     
     results.coef1 <- topTable(fit_eBayes, coef=1, number=Inf, sort.by="none")
     results.coef1 <- cbind(Proteins = rownames(results.coef1), results.coef1)
-    return(results.coef1)
+    results.coef2 <- merge(results.coef1, z[,c(1:3)], by.x = "Proteins" , by.y ="Uniprot_ID")
+    results.coef3 <- cbind(results.coef2["Proteins"], results.coef2["Gene_ID"], results.coef2["Description"], results.coef1[,-1])
+    return(results.coef3)
   }
   
   ####Actual work####
   
+  observeEvent(input$tst,{
+    print(colnames(Protein_Data()))
+  })
+  
   Protein_Data <- reactive({Process_Protein_data(Raw_Protein())})
-  Protein_Data_Values_Only <- reactive({Values_only(Protein_Data())})
-  Normal_PData <- reactive({Protein_Data_Values_Only()})
-  # Normal_PData <- reactive({Median_Normalization(Protein_Data_Values_Only())})
-  results.coef1 <- reactive({LIMMA(Normal_PData(),DFP4())})
+  Protein_Data_Values_Only <- reactive({Values_only(Protein_Data(), DFP4())})
+  results.coef1 <- reactive({LIMMA(Protein_Data_Values_Only(),DFP4(), Protein_Data())})
   results.coef1_Sig <- reactive({results.coef1()[results.coef1()$logFC >= input$logFC_Sig[2] | results.coef1()$logFC <= input$logFC_Sig[1] & 
                                                    if(input$P.Value == "P-Value"){results.coef1()$P.Value < input$P.Val_thresh} else {results.coef1()$adj.P.Val < input$P.Val_thresh},]
     })
@@ -766,7 +762,7 @@ server <- function(input, output){
     return(Significant_int_data)
   }
   
-  Significant <- reactive({Sorting_Significant(results.coef1(), Normal_PData())})
+  Significant <- reactive({Sorting_Significant(results.coef1(), Protein_Data_Values_Only())})
  
    
   ####Outputs the Dashboard Raw and Normalized histogram####
@@ -777,7 +773,7 @@ server <- function(input, output){
   })
   
   norm_hist <- reactive({
-    ggplot(melt(Normal_PData()), aes(x = value)) + 
+    ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
       geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour, binwidth = input$hist_slider) + 
       xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_norm_title) + theme(plot.title = element_text(hjust = 0.5))
   })
@@ -799,7 +795,7 @@ server <- function(input, output){
   })
   
   norm_box <- reactive({
-    ggplot(melt(Normal_PData()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
+    ggplot(melt(Protein_Data_Values_Only()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
       xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_norm_title) + theme(plot.title = element_text(hjust = 0.5))
   })
   
@@ -814,11 +810,11 @@ server <- function(input, output){
   
   ####Outputs the Dashboard MDS and PCA Plots####
   output$PCA <- renderPlot({
-    autoplot(prcomp(t(Normal_PData())), shape = FALSE,  label.size = 4) + theme_classic()
+    autoplot(prcomp(t(Protein_Data_Values_Only())), shape = FALSE,  label.size = 4) + theme_classic()
   })
   
   output$MDS <- renderPlot({
-    plotMDS(Normal_PData(), labels = colnames(Normal_PData()), col=c(rep("blue",length(DFP3()$Treatment)), rep("red",5)))
+    plotMDS(Protein_Data_Values_Only(), labels = colnames(Protein_Data_Values_Only()), col=c(rep("blue",length(DFP3()$Treatment)), rep("red",5)))
   })
   
   ####Protein: Volcano Plot and Data####
@@ -863,7 +859,7 @@ server <- function(input, output){
   
   output$Datatable_I <- renderDataTable(
     
-    as.data.frame(Normal_PData()) %>% mutate_if(is.numeric, round, 3), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
+    as.data.frame(Protein_Data_Values_Only()) %>% mutate_if(is.numeric, round, 3), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
                                       options = list(scroller = T, scrollY = 900, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf'))
     )
   
@@ -873,7 +869,7 @@ server <- function(input, output){
   ####Protein: Heatmaps####
   #Heat maply
   output$Heatmap_all <- renderPlotly({
-    heatmaply(t(Normal_PData()), scale = input$scl1 ,scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(high = input$High_colour, mid = input$Mid_colour, low = input$Low_colour))
+    heatmaply(t(Protein_Data_Values_Only()), scale = input$scl1 ,scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(high = input$High_colour, mid = input$Mid_colour, low = input$Low_colour))
   })
   
   output$Heatmap_Sig <- renderPlotly({
@@ -911,14 +907,14 @@ server <- function(input, output){
   output$PCA_dnld = downloadHandler(
     filename = function(){paste("PCA", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=autoplot(prcomp(Normal_PData()), shape = FALSE,  label.size = 4) + theme_classic())
+      ggsave(file,plot=autoplot(prcomp(Protein_Data_Values_Only()), shape = FALSE,  label.size = 4) + theme_classic())
     }
   )
   
   output$MDS_dnld = downloadHandler(
     filename = function(){paste("MDS", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=plotMDS(t(Normal_PData()), labels = rownames(Normal_PData()), col=c(rep(colorlist$blue,3), rep(colorlist$red,3))))
+      ggsave(file,plot=plotMDS(t(Protein_Data_Values_Only()), labels = rownames(Protein_Data_Values_Only()), col=c(rep(colorlist$blue,3), rep(colorlist$red,3))))
     }
   )
   
@@ -951,7 +947,7 @@ server <- function(input, output){
   output$HM = downloadHandler(
     filename = function(){paste("Heatmap All Values", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=d3heatmap(Normal_PData(), scale = "column", color = input$CLRS))
+      ggsave(file,plot=d3heatmap(Protein_Data_Values_Only(), scale = "column", color = input$CLRS))
     }
   )
   
