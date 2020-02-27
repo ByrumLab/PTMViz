@@ -166,20 +166,33 @@ ui <-shinyUI(
         ####PTM Page####
         tabItem(tabName = "PTM", h1("Post Translational Modification"),
                 fluidRow(
-                  box( width = 3, uiOutput("picker1"), uiOutput("picker2"), uiOutput("picker3"), uiOutput("picker4"), 
-                       uiOutput("Dif_Anal_choice1")),
-                  box(title= "Histone_data_table", width = 9,  dataTableOutput("Histone_data_table"))
-                  ),
-                fluidRow(
-                  box(dataTableOutput("DFTable"),
-                      width = 12)),
+                  # box( width = 3, uiOutput("picker1"), uiOutput("picker2"), uiOutput("picker3"), uiOutput("picker4")
+                  #      ),
+                  box(
+                    width = 12, 
+                    title= "Histone_data_table", 
+                    fluidRow(
+                      column(width =3, uiOutput("picker1")),
+                      column(width =3, uiOutput("picker2")),
+                      column(width =3, uiOutput("picker3")),
+                      column(width =3, uiOutput("picker4"))),
+                     dataTableOutput("Histone_data_table"))),
                 fluidRow(
                   box(
                     width = 12,
-                    uiOutput("Sample_PTM_Barplot"),
-                    uiOutput("PTM_Barplot"),
+                    fluidRow(column(width = 3, uiOutput("Sample_PTM_Barplot")),
+                             column(width = 3, uiOutput("PTM_Residue_BP")),
+                             column(width = 3, uiOutput("PTM_Trt")),
+                             column(width = 3, uiOutput("PTM_Barplot"))),
+                    checkboxInput("PTM_mean_chkbx", label = "View Individual Samples", value = F),
                     plotOutput("PTM_Graph"),
                     downloadButton("PTM_BP", "Download"))),
+                fluidRow(
+                  box(
+                    uiOutput("Dif_Anal_choice1"),
+                    dataTableOutput("DFTable"),
+                      width = 12)),
+                
                 fluidRow(
                   box(
                     title = "Differential Analysis Heatmap",
@@ -190,12 +203,7 @@ ui <-shinyUI(
         ####Protein Page####
         tabItem(tabName = "Data", h2("Protein"),
                 fluidRow(
-                  box(title =" Volcano Plot", plotlyOutput("Volcano"),                        
-                      sliderInput("logFC_Sig", "LogFC Significance Threshhold", -4, 4, c(-2,2)),
-                      sliderInput("P.Val_thresh", "P-Value Threshhold", 0, 1, 0.05),
-                      radioButtons("P.Value","P-Value",c("P-Value","Adj P-Value"), inline = T),
-                      downloadButton("VC_plot", "Download")),
-                  tabBox(title = "Data",
+                  tabBox(title = "Data", width = 12,
                          tabPanel("All Data", 
                                   dataTableOutput("Datatable")),
                          tabPanel("Significant Data",
@@ -204,6 +212,14 @@ ui <-shinyUI(
                                   dataTableOutput("Datatable_I")),
                          tabPanel("Significant Intesnity Data",
                                   dataTableOutput("Datatable_I_Sig")))),
+                fluidRow(
+                  box( width = 12, title =" Volcano Plot",
+                            fluidRow(
+                              column(width = 4, sliderInput("logFC_Sig", "LogFC Significance Threshhold", -4, 4, c(-2,2))),
+                              column(width = 4, sliderInput("P.Val_thresh", "P-Value Threshhold", 0, 1, 0.05)),
+                              column(width = 4, radioButtons("P.Value","P-Value",c("P-Value","Adj P-Value"), inline = T))),
+                            fluidRow(plotlyOutput("Volcano"),
+                                     downloadButton("VC_plot", "Download")))),
                 fluidRow(
                   tabBox(width = 12,
                          tabPanel("Heatmap Significant Data", radioButtons("scl2", "Choose Scale",c('none','column','row'), inline = T), plotlyOutput("Heatmap_Sig"), downloadButton("HM_Sig", "Download")),
@@ -217,60 +233,74 @@ ui <-shinyUI(
         ####PTM Upload Page####
         tabItem(tabName = "Upload1", h2("PTM Upload"),
                 fluidRow(
-                  box( width = 3,
-                       fileInput("file1", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
-                       tags$hr(),
-                       checkboxInput("header","Header",T),
-                       radioButtons("sep", "Seperator", choices = c(Comma = ",", 
-                                                                    Semicolon =";",
-                                                                    Tab = "\t"),
-                                    selected = ","),
-                       radioButtons("quote", "Quote", 
-                                    choices = c(None = "",
-                                                "Double Quote" = '"',
-                                                "Single Quote" = "'"),
-                                    selected = '"'),
-                       tags$hr(),
-                       radioButtons("disp", "Display",
-                                    choices = c(Head = "head",
-                                                All = "all"),
-                                    selected = "head"),
-                       actionButton("PTM_Upload_Bttn", "Upload")
-                  ),
-                  box(width = 9, tableOutput("contents"))),
+                  box( width =12,
+                    column( width = 3,
+                      fileInput("file1", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
+                           tags$hr(),
+                           checkboxInput("header","Header",T),
+                           radioButtons("sep", "Seperator", choices = c(Comma = ",", 
+                                                                        Semicolon =";",
+                                                                        Tab = "\t"),
+                                        selected = ","),
+                           radioButtons("quote", "Quote", 
+                                        choices = c(None = "",
+                                                    "Double Quote" = '"',
+                                                    "Single Quote" = "'"),
+                                        selected = '"'),
+                           tags$hr(),
+                           radioButtons("disp", "Display",
+                                        choices = c(Head = "head",
+                                                    All = "all"),
+                                        selected = "head"),
+                           actionButton("PTM_Upload_Bttn", "Upload")),
+                    column( width = 9,
+                      tableOutput("contents")))),
                 fluidRow(
-                  box(title = "Edit", textInput('name_control', label =h3("Name of Control"), value = "Control"),textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment") ,rHandsontableOutput("AB"),
-                      actionButton("Update", label = "Update Data")),
-                  box(dataTableOutput("AA")))),
+                  box( width = 12,
+                    column( width = 6,
+                      title = "Edit", 
+                      column(width = 6, textInput('name_control', label =h3("Name of Control"), value = "Control")),
+                      column(width = 6, textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment")),
+                      rHandsontableOutput("AB"),
+                           actionButton("Update", label = "Update Data")),
+                    column( width = 6,
+                      dataTableOutput("AA"))))),
         
         ####Protein Upload Page####
         tabItem(tabName = "Upload2", h2("Protein Upload"),
                 fluidRow(
-                  box( width = 3,
-                       fileInput("file2", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
-                       tags$hr(),
-                       checkboxInput("header2","Header",T),
-                       radioButtons("sep2", "Seperator", choices = c(Comma = ",", 
+                  box( width =12,
+                    column( width = 3,
+                      fileInput("file2", "Choose CSV File", multiple = F, accept = c("text/csv","text/comma-seperated-values,text/plain",".csv")),
+                      tags$hr(),
+                      checkboxInput("header2","Header",T),
+                      radioButtons("sep2", "Seperator", choices = c(Comma = ",", 
                                                                     Semicolon =";",
                                                                     Tab = "\t"),
-                                    selected = ","),
-                       radioButtons("quote2", "Quote", 
-                                    choices = c(None = "",
-                                                "Double Quote" = '"',
-                                                "Single Quote" = "'"),
-                                    selected = '"'),
-                       tags$hr(),
-                       radioButtons("disp2", "Display",
-                                    choices = c(Head = "head",
-                                                All = "all"),
-                                    selected = "head")),
-                  
-                  box(width = 9, tableOutput("contents2"))),
+                                   selected = ","),
+                      radioButtons("quote2", "Quote", 
+                                   choices = c(None = "",
+                                               "Double Quote" = '"',
+                                               "Single Quote" = "'"),
+                                   selected = '"'),
+                      tags$hr(),
+                      radioButtons("disp2", "Display",
+                                   choices = c(Head = "head",
+                                               All = "all"),
+                                   selected = "head")),
+                    column(width = 9, tableOutput("contents2"))),
                 fluidRow(
-                  box(title = "Edit2", rHandsontableOutput("Protein_HOT"),
-                      actionButton("Update_PHOT", label = "Update Data"),
-                      textOutput("Protein_Text")),
-                  box(dataTableOutput("PHOT_DT"))))
+                  box(title = "Edit2", width = 12,
+                    column(width = 6,
+                           column(width = 6, textInput('name_control_protein', label =h3("Name of Control"), value = "Control")),
+                           column(width = 6, textInput('name_treatment_protein', label = h3("Name of Treatment"), value = "Treatment")),
+                           rHandsontableOutput("Protein_HOT"),
+                           actionButton("Update_PHOT", label = "Update Data"),
+                           textOutput("Protein_Text")),
+                    column(width = 6, dataTableOutput("PHOT_DT")))
+                  )
+                )
+                )
         ######
 
         )
@@ -309,21 +339,17 @@ server <- function(input, output){
   })  
   ####Creates a Dataframe that will be used to edit the Raw_data() dataframe####
   DF1 <- reactive({data.frame(File.Name= unique(Raw_Data()$MS.MS_sample_name),
-                              Sample.Group= letters[1:length(unique(Raw_Data()$MS.MS_sample_name))],
-                              Replicate= 1:length(unique(Raw_Data()$MS.MS_sample_name)),
+                              Sample.Group= NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
+                              Replicate= NA_integer_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
                               Experimental.Group= factor(c("Control", "Treatment"), labels = c(input$name_control, input$name_treatment)),
                               stringsAsFactors= F,
-                              Custom.ID= letters[1:length(unique(Raw_Data()$MS.MS_sample_name))])})
+                              Custom.ID= NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))])})
   
   output$AC <- renderTable({
     req(Raw_Data())
     Raw_Data()
   })
   
-  observeEvent(input$tst,{
-    print(colnames(DF1()))
-    print(DF1()$File.Name)
-  })
     
   ###Creates the handsontable where DF1() will be edited####
   DF2 <- reactive({
@@ -335,19 +361,41 @@ server <- function(input, output){
     
   ####Changes the handsontable back into a dataframe####
   DF3 <- eventReactive(input$Update, {hot_to_r(input$AB)})
+  
+  Custom_ID <- function(x){
+    
+    DF4 <- x
+    
+    for(i in 1:length(DF4$File.Name)){
+      if(is.na(DF4$Custom.ID[i])){
+        DF4$Custom.ID[i] <- paste(DF4$Sample.Group[i], DF4$Replicate[i], DF4$Experimental.Group[i], sep = "_")
+      } else {
+        next
+      }
+    }
+    return(DF4)
+  }
+    
+  
+  DF4 <- reactive({
+    Custom_ID(DF3())
+  })
     
   output$AA <- renderDataTable({
-    DF3()})
+    DF4()
+    })
+  
+
   ####Outputs the Rhandsontable ####
   
   Blank <- function(x){
     
     for(i in 1:length(unique(x$MS.MS_sample_name))){
-      HD <- x[x$MS.MS_sample_name %in% DF3()$File.Name[i],]
-      HD$Replicate <- DF3()$Replicate[i]
-      HD$MS.MS_sample_name <- mapvalues(HD$MS.MS_sample_name, from = HD$MS.MS_sample_name[1], to = as.character(DF3()$Sample.Group[i]))
-      HD$Treatment <- DF3()$Experimental.Group[i]
-      HD$Custom.ID <- DF3()$Custom.ID[i]
+      HD <- x[x$MS.MS_sample_name %in% DF4()$File.Name[i],]
+      HD$Replicate <- DF4()$Replicate[i]
+      HD$MS.MS_sample_name <- mapvalues(HD$MS.MS_sample_name, from = HD$MS.MS_sample_name[1], to = as.character(DF4()$Sample.Group[i]))
+      HD$Treatment <- DF4()$Experimental.Group[i]
+      HD$Custom.ID <- DF4()$Custom.ID[i]
       if(!exists("Histone_data")){
         Histone_data <- HD
       } else {
@@ -394,9 +442,16 @@ server <- function(input, output){
   output$Dif_Anal_choice1 <- renderUI({selectInput("Dif_Anal_choice1","Dif_Anal_choice1", choices=levels(factor(Histone_PTM2()$Sample)))})
   
   # output$Sample_PTM_Barplot <- renderUI({selectInput("Sample_PTM_Barplot", "Sample Selction", choices = levels(factor(Histone_PTM2()$Sample)))})
-  output$Sample_PTM_Barplot <- renderUI({pickerInput("Sample_BP","Sample Selection", choices=levels(factor(Histone_PTM2()$Sample)), options = list(`actions-box` = TRUE),multiple = T)})
+  output$Sample_PTM_Barplot <- renderUI({pickerInput("Sample_BP","Sample Selection", choices=levels(factor(Histone_PTM2()$Sample)), options = list(`actions-box` = TRUE),multiple = T,
+                                                     selected = levels(factor(Histone_PTM2()$Sample)))})
   
   output$PTM_Barplot <- renderUI({selectInput("PTM_Barplot", "Histone Selction", choices = levels(factor(Histone_PTM2()$Histone)))})
+  
+  output$PTM_Trt <- renderUI({pickerInput("Treatment_BP","Experimental Group Selection", choices=levels(factor(Histone_PTM2()$Treatment)), options = list(`actions-box` = TRUE),multiple = T,
+                                          selected = levels(factor(Histone_PTM2()$Treatment)))})
+  
+  output$PTM_Residue_BP <- renderUI({pickerInput("Residue_BP","Residue Selection", choices=levels(factor(Protein_Graph_Table()$"PTM Residue")), options = list(`actions-box` = TRUE),multiple = T,
+                                                 selected = levels(factor(Protein_Graph_Table()$"PTM Residue")))})
    
   ####Histone_PTM Table####
   PTM_filter <- function(x){
@@ -507,22 +562,30 @@ server <- function(input, output){
  
   ####Creating Bar Graphs for Histone PTMS####
   
-  Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter(Histone %in% input$PTM_Barplot)})
+  Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter(Histone %in% input$PTM_Barplot & c(Treatment %in% input$Treatment_BP))})
+  # Protein_Graph_Table2 <- reactive({Histone_PTM2()() %>% filter(Histone %in% "Histone H3.1" & Sample.Group %in% "Nucleus Accumbens" & Treatment %in% c("Control", "Treatment") & PTM.Residue %in% "k14")})
+  # Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter("Sample Groups" %in% input$Sample_BP & Treatment %in% input$Treatment_BP & Histone %in% input$PTM_Barplot)})
   
-  P_Graph_Prep <- function(z,Tissue){
+  # PGT <- reactive({Protein_Graph_Table() %>% filter("PTM Residue" %in% input$Residue_BP)})
+  
+
+  
+  P_Graph_Prep <- function(z, Tissue, Residue){
 
     z$PTM = trimws(z$PTM)
     
     aggregatedDF = aggregate(x = z$'Beta Value', FUN = mean, 
                              by = list(tissue = z$Sample,
                                        treatment = z$Treatment, 
+                                       names = z$"Custom ID",
                                        position = z$'PTM Residue', 
                                        modification = z$PTM))
     colnames(aggregatedDF)[colnames(aggregatedDF) =="x"] = "Mean Beta-Value"
-    temp = aggregatedDF[aggregatedDF$tissue %in% c(Tissue),]
+    temp = aggregatedDF[aggregatedDF$tissue %in% c(Tissue) & aggregatedDF$position %in% c(Residue),]
     temp$sample <- paste(temp$tissue, temp$treatment, sep = "_")
     temp$modification = factor(temp$modification, levels = c("Acetyl", "Methyl", "Dimethyl", "Trimethyl", "Unmodified"))
     temp$position = factor(temp$position, levels = unique(temp$position)[order(as.numeric(substring(unique(temp$position),2)))])
+    
     
     gg_color_hue <- function(n) {
       hues = seq(15, 375, length = n + 1)
@@ -533,7 +596,7 @@ server <- function(input, output){
     clrs = gg_color_hue(5)
     names(clrs) = modificationList
     
-    PTM_barplot <- ggplot(temp, aes(x = sample, y = `Mean Beta-Value`, fill = modification)) +
+    PTM_barplot <- ggplot(temp, aes(x = if(input$PTM_mean_chkbx == F){sample}else{names}, y = `Mean Beta-Value`, fill = modification)) +
       geom_bar(stat = 'identity', position = 'fill') + facet_grid(~ position) +
       scale_fill_manual("Legend", values = clrs) +
       scale_y_continuous(labels = scales::percent_format()) +
@@ -542,7 +605,10 @@ server <- function(input, output){
     return(PTM_barplot)
   }
   
-  BGraph_PTM <- reactive({P_Graph_Prep(Protein_Graph_Table(),input$Sample_BP)})
+  BGraph_PTM <- reactive({
+    req(Protein_Graph_Table())
+    P_Graph_Prep(Protein_Graph_Table(), input$Sample_BP ,input$Residue_BP)
+    })
   
   
   output$PTM_Graph <- renderPlot({
@@ -558,7 +624,7 @@ server <- function(input, output){
   })
   
   output$PCA <- renderPlot({
-    autoplot(prcomp(Normal_PData()), shape = FALSE,  label.size = 4) + theme_classic()
+    autoplot(prcomp(Protein_Data_Values_Only()), shape = FALSE,  label.size = 4) + theme_classic()
   })
   
   
@@ -615,58 +681,41 @@ server <- function(input, output){
   #### Creates a Hands on table for protein data####
   
   DFP1 <- reactive({data.frame(File.Name = colnames(Raw_Protein()[,-1]),
-                              Sample = letters[1:length(colnames(Raw_Protein()[,-1]))],
-                              Replicate = 1:length(colnames(Raw_Protein()[,-1])),
+                              Sample.Group = NA_character_[1:length(colnames(Raw_Protein()[,-1]))],
+                              Replicate = NA_integer_[1:length(colnames(Raw_Protein()[,-1]))],
                               Experimental.Group = factor(c("Control", "Treatment")),
-                              stringsAsFactors = F)})
+                              stringsAsFactors = F, 
+                              Custom.ID=  NA_character_[1:length(colnames(Raw_Protein()[,-1]))])})
   
   DFP2 <- reactive({
     req(DFP1())
-    rhandsontable(DFP1()) %>% hot_col("File.Name", readOnly = T) %>% hot_col("Sample", type = "autocomplete")})
+    rhandsontable(DFP1()) %>% hot_col("File.Name", readOnly = T) %>% hot_col("Sample.Group", type = "autocomplete")})
   
   output$Protein_HOT<- renderRHandsontable({DFP2()})
   
   DFP3 <- eventReactive(input$Update_PHOT, {hot_to_r(input$Protein_HOT)})
   
+  DFP4 <- reactive({Custom_ID(DFP3())})
+  
   output$PHOT_DT <- renderDataTable({
-    DFP3()})
+    DFP4()})
+  
   
   ####Create a values only DF####
   
-  Values_only <- function(x){
+  Values_only <- function(x, y){
     VO <- x[,-c(1:3)]
-    colnames(VO) <- paste(DFP3()$Sample, DFP3()$Replicate, sep = "_")
+    colnames(VO) <- y$Custom.ID
     rownames(VO) <- make.names(names = x[,1], unique = T)
     return(VO)
   } 
 
-  ####Function for Median Normalizing the dataset####
-  # Median_Normalization <- function(x){
-  #   VO1 <-x
-  #   
-  #   #Median Normalizing the Data
-  #   colMedians <- colMedians(as.matrix(VO1))
-  #   Max_Median <- max(colMedians)
-  #   adjusted_Medians <- Max_Median/colMedians
-  #   DF_norm_VO <- VO1
-  # 
-  #   for(i in 1:length(adjusted_Medians)){
-  #     DF_norm_VO[,i] <- adjusted_Medians[i]*VO1[,i]
-  #   }
-  # 
-  #   #Log transforming the data
-  #   DF_norm_VO <- log1p(DF_norm_VO)
-  # 
-  #   return(DF_norm_VO)
-  # }
-  
-   
   ####LIMMA####
-  LIMMA <- function(x){
+  LIMMA <- function(x,y,z){
     limma_data_frame <- x
-    DFP3 <- DFP3()
+    DFP <- y
 
-    vec <- DFP3$Experimental.Group
+    vec <- DFP$Experimental.Group
     
 
     group <- factor(vec, levels=c("Control", "Treatment"))
@@ -687,16 +736,20 @@ server <- function(input, output){
     
     results.coef1 <- topTable(fit_eBayes, coef=1, number=Inf, sort.by="none")
     results.coef1 <- cbind(Proteins = rownames(results.coef1), results.coef1)
-    return(results.coef1)
+    results.coef2 <- merge(results.coef1, z[,c(1:3)], by.x = "Proteins" , by.y ="Uniprot_ID")
+    results.coef3 <- cbind(results.coef2["Proteins"], results.coef2["Gene_ID"], results.coef2["Description"], results.coef1[,-1])
+    return(results.coef3)
   }
   
   ####Actual work####
   
+  observeEvent(input$tst,{
+    print(colnames(Protein_Data()))
+  })
+  
   Protein_Data <- reactive({Process_Protein_data(Raw_Protein())})
-  Protein_Data_Values_Only <- reactive({Values_only(Protein_Data())})
-  Normal_PData <- reactive({Protein_Data_Values_Only()})
-  # Normal_PData <- reactive({Median_Normalization(Protein_Data_Values_Only())})
-  results.coef1 <- reactive({LIMMA(Normal_PData())})
+  Protein_Data_Values_Only <- reactive({Values_only(Protein_Data(), DFP4())})
+  results.coef1 <- reactive({LIMMA(Protein_Data_Values_Only(),DFP4(), Protein_Data())})
   results.coef1_Sig <- reactive({results.coef1()[results.coef1()$logFC >= input$logFC_Sig[2] | results.coef1()$logFC <= input$logFC_Sig[1] & 
                                                    if(input$P.Value == "P-Value"){results.coef1()$P.Value < input$P.Val_thresh} else {results.coef1()$adj.P.Val < input$P.Val_thresh},]
     })
@@ -709,7 +762,7 @@ server <- function(input, output){
     return(Significant_int_data)
   }
   
-  Significant <- reactive({Sorting_Significant(results.coef1(), Normal_PData())})
+  Significant <- reactive({Sorting_Significant(results.coef1(), Protein_Data_Values_Only())})
  
    
   ####Outputs the Dashboard Raw and Normalized histogram####
@@ -720,7 +773,7 @@ server <- function(input, output){
   })
   
   norm_hist <- reactive({
-    ggplot(melt(Normal_PData()), aes(x = value)) + 
+    ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
       geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour, binwidth = input$hist_slider) + 
       xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_norm_title) + theme(plot.title = element_text(hjust = 0.5))
   })
@@ -742,7 +795,7 @@ server <- function(input, output){
   })
   
   norm_box <- reactive({
-    ggplot(melt(Normal_PData()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
+    ggplot(melt(Protein_Data_Values_Only()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
       xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_norm_title) + theme(plot.title = element_text(hjust = 0.5))
   })
   
@@ -757,11 +810,11 @@ server <- function(input, output){
   
   ####Outputs the Dashboard MDS and PCA Plots####
   output$PCA <- renderPlot({
-    autoplot(prcomp(t(Normal_PData())), shape = FALSE,  label.size = 4) + theme_classic()
+    autoplot(prcomp(t(Protein_Data_Values_Only())), shape = FALSE,  label.size = 4) + theme_classic()
   })
   
   output$MDS <- renderPlot({
-    plotMDS(Normal_PData(), labels = colnames(Normal_PData()), col=c(rep("blue",length(DFP3()$Treatment)), rep("red",5)))
+    plotMDS(Protein_Data_Values_Only(), labels = colnames(Protein_Data_Values_Only()), col=c(rep("blue",length(DFP3()$Treatment)), rep("red",5)))
   })
   
   ####Protein: Volcano Plot and Data####
@@ -806,7 +859,7 @@ server <- function(input, output){
   
   output$Datatable_I <- renderDataTable(
     
-    as.data.frame(Normal_PData()) %>% mutate_if(is.numeric, round, 3), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
+    as.data.frame(Protein_Data_Values_Only()) %>% mutate_if(is.numeric, round, 3), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
                                       options = list(scroller = T, scrollY = 900, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf'))
     )
   
@@ -816,7 +869,7 @@ server <- function(input, output){
   ####Protein: Heatmaps####
   #Heat maply
   output$Heatmap_all <- renderPlotly({
-    heatmaply(t(Normal_PData()), scale = input$scl1 ,scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(high = input$High_colour, mid = input$Mid_colour, low = input$Low_colour))
+    heatmaply(t(Protein_Data_Values_Only()), scale = input$scl1 ,scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(high = input$High_colour, mid = input$Mid_colour, low = input$Low_colour))
   })
   
   output$Heatmap_Sig <- renderPlotly({
@@ -854,14 +907,14 @@ server <- function(input, output){
   output$PCA_dnld = downloadHandler(
     filename = function(){paste("PCA", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=autoplot(prcomp(Normal_PData()), shape = FALSE,  label.size = 4) + theme_classic())
+      ggsave(file,plot=autoplot(prcomp(Protein_Data_Values_Only()), shape = FALSE,  label.size = 4) + theme_classic())
     }
   )
   
   output$MDS_dnld = downloadHandler(
     filename = function(){paste("MDS", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=plotMDS(t(Normal_PData()), labels = rownames(Normal_PData()), col=c(rep(colorlist$blue,3), rep(colorlist$red,3))))
+      ggsave(file,plot=plotMDS(t(Protein_Data_Values_Only()), labels = rownames(Protein_Data_Values_Only()), col=c(rep(colorlist$blue,3), rep(colorlist$red,3))))
     }
   )
   
@@ -894,7 +947,7 @@ server <- function(input, output){
   output$HM = downloadHandler(
     filename = function(){paste("Heatmap All Values", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=d3heatmap(Normal_PData(), scale = "column", color = input$CLRS))
+      ggsave(file,plot=d3heatmap(Protein_Data_Values_Only(), scale = "column", color = input$CLRS))
     }
   )
   
