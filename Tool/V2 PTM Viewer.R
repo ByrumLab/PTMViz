@@ -106,15 +106,14 @@ ui <-shinyUI(
     dashboardHeader(title = "PTMViz"),
     dashboardSidebar(
       sidebarMenu(
-        menuItem("Upload", tabName = "Upload",
-                 menuSubItem("Protein Upload",
-                             tabName = "Upload2"),
-                 menuSubItem("PTM Upload",
-                             tabName = "Upload1")),
         menuItem("Protein", tabName = "Protein",
+                 menuSubItem("Protein Upload", tabName = "Upload2"),
                  menuSubItem("Preliminary", tabName = "Preliminary"),
                  menuSubItem("Protein_Data", tabName = "Data")),
-        menuItem("Post Translational Modifications", tabName = "PTM"),
+        menuItem("PTM", tabName = "PTM",
+                 menuSubItem("PTM Upload", tabName = "Upload1"),
+                 menuSubItem("Post Translational Modifications", tabName = "PTM2")
+                 ),
         radioButtons("dnld_options", "Select Download File Type", choices = list("png", "pdf")),
         actionBttn("tst", "Test")
       )),
@@ -124,34 +123,34 @@ ui <-shinyUI(
         tabItem(tabName = "Preliminary", 
                 fluidRow(
                   tabBox(title = "Histogram", 
-                         tabPanel("Raw", 
+                         tabPanel("Histogram", 
                                   plotOutput("Histogram_Raw"), 
                                   downloadButton("H_raw", "Download")),
                          
-                         tabPanel("Normalized", 
-                                  plotOutput("Histogram_Norm"),
-                                  downloadButton("H_norm", "Download")),
+                         # tabPanel("Normalized", 
+                         #          plotOutput("Histogram_Norm"),
+                         #          downloadButton("H_norm", "Download")),
                          
                          tabPanel("Settings", 
-                                  textInput("hist_raw_title", label =h3("Raw Data Histogram Title")),
-                                  textInput("hist_norm_title", label =h3("Normal Data Histogram Title")),
-                                  textInput("hist_xlab", label =h3("X-axis Label")),
-                                  textInput("hist_ylab", label =h3("Y-axis Label")),
+                                  textInput("hist_raw_title", label =h3("Histogram Title"), value = "Histogram"),
+                                  # textInput("hist_norm_title", label =h3("Normal Data Histogram Title")),
+                                  textInput("hist_xlab", label =h3("X-axis Label"), value = "Counts"),
+                                  textInput("hist_ylab", label =h3("Y-axis Label"), value = "Intensity"),
                                   colourInput("hist_fill_colour", label = "Choose Fill color", value = "red"),
                                   colourInput("hist_border_colour", label = "Choose Border color", value = "black"),
                                   sliderInput("hist_slider", label = "Binwidth", min = 1, max = 10, value = 2))),
                   tabBox(title = "Boxplot", 
-                         tabPanel("Raw", 
+                         tabPanel("Boxplot", 
                                   plotOutput("Boxplot_Raw"),
                                   downloadButton("B_raw", "Download")),
-                         tabPanel("Normalized", 
-                                  plotOutput("Boxplot_Norm"),
-                                  downloadButton("B_norm", "Download")),
+                         # tabPanel("Normalized", 
+                         #          plotOutput("Boxplot_Norm"),
+                         #          downloadButton("B_norm", "Download")),
                          tabPanel("Settings", 
-                                  textInput("box_raw_title", label =h3("Raw Data Histogram Title")),
-                                  textInput("box_norm_title", label =h3("Normal Data Histogram Title")),
+                                  textInput("box_raw_title", label =h3("Boxplot Title")),
+                                  # textInput("box_norm_title", label =h3("Normal Data Histogram Title")),
                                   textInput("box_xlab", label =h3("X-axis Label")),
-                                  textInput("box_ylab", label =h3("Y-axis Label")),
+                                  textInput("box_ylab", label =h3("Y-axis Label"), value = "Custom ID"),
                                   colourInput("box_fill_colour", label = "Choose Fill color", value = "red"),
                                   colourInput("box_border_colour", label = "Choose Border color", value = "black")))),
                 fluidRow(
@@ -164,7 +163,7 @@ ui <-shinyUI(
             
         
         ####PTM Page####
-        tabItem(tabName = "PTM", h1("Post Translational Modification"),
+        tabItem(tabName = "PTM2", h1("Post Translational Modification"),
                 fluidRow(
                   # box( width = 3, uiOutput("picker1"), uiOutput("picker2"), uiOutput("picker3"), uiOutput("picker4")
                   #      ),
@@ -178,27 +177,38 @@ ui <-shinyUI(
                       column(width =3, uiOutput("picker4"))),
                      dataTableOutput("Histone_data_table"))),
                 fluidRow(
-                  box(
-                    width = 12,
-                    fluidRow(column(width = 3, uiOutput("Sample_PTM_Barplot")),
-                             column(width = 3, uiOutput("PTM_Residue_BP")),
-                             column(width = 3, uiOutput("PTM_Trt")),
-                             column(width = 3, uiOutput("PTM_Barplot"))),
-                    checkboxInput("PTM_mean_chkbx", label = "View Individual Samples", value = F),
-                    plotOutput("PTM_Graph"),
-                    downloadButton("PTM_BP", "Download"))),
+                  tabBox( title = "Global PTM Values", width = 12, 
+                          tabPanel("PTM Values",
+                            fluidRow(column(width = 3, uiOutput("Sample_PTM_Barplot")),
+                                     column(width = 3, uiOutput("PTM_Residue_BP")),
+                                     column(width = 3, uiOutput("PTM_Trt")),
+                                     column(width = 3, uiOutput("PTM_Barplot"))),
+                            checkboxInput("PTM_mean_chkbx", label = "View Individual Samples", value = F),
+                            plotOutput("PTM_Graph", height = 600),
+                            downloadButton("PTM_BP", "Download")),
+                    tabPanel("Settings",
+                             numericInput("PTM_BP_axis_txt", label = h3("Input axis text size"), value = 12),
+                             numericInput("PTM_BP_axis_title", label = h3("Input y axis title size"), value = 12),
+                             numericInput("PTM_BP_title", label = h3("Input title size"), value = 18)
+                             )
+                    )
+                  ),
+                  
+                  
                 fluidRow(
-                  box(
-                    uiOutput("Dif_Anal_choice1"),
-                    dataTableOutput("DFTable"),
-                      width = 12)),
-                
-                fluidRow(
-                  box(
-                    title = "Differential Analysis Heatmap",
-                    width = 12,
-                    plotlyOutput("PTM_heatmaply")
-                  ))),
+                  tabBox(title = "Differntial Analysis", width = 12,
+                         tabPanel("Differential Analysis Table",
+                                  uiOutput("Dif_Anal_choice1"),
+                                  dataTableOutput("DFTable")),
+                         tabPanel("Differential Analysis Heatmap",
+                                  title = "Differential Analysis Heatmap",
+                                  plotlyOutput("PTM_heatmaply")),
+                         tabPanel("Settings",
+                                  colourInput("High_colour_DA", label = "Choose High Intensity Color", value = "red"),
+                                  colourInput("Mid_colour_DA", label = "Choose Mid Intensity Color", value = "white"),
+                                  colourInput("Low_colour_DA", label = "Choose Low Intensity Color", value = "green")
+                                  )))
+                ),
             
         ####Protein Page####
         tabItem(tabName = "Data", h2("Protein"),
@@ -215,7 +225,7 @@ ui <-shinyUI(
                 fluidRow(
                   box( width = 12, title =" Volcano Plot",
                             fluidRow(
-                              column(width = 4, sliderInput("logFC_Sig", "LogFC Significance Threshhold", -4, 4, c(-2,2))),
+                              column(width = 4, sliderInput("logFC_Sig", "LogFC Significance Threshhold", step = .25,-4, 4, c(-2,2))),
                               column(width = 4, sliderInput("P.Val_thresh", "P-Value Threshhold", 0, 1, 0.05)),
                               column(width = 4, radioButtons("P.Value","P-Value",c("P-Value","Adj P-Value"), inline = T))),
                             fluidRow(plotlyOutput("Volcano"),
@@ -439,7 +449,7 @@ server <- function(input, output){
   output$picker3 <- renderUI({pickerInput("Histone","Histone", choices=levels(factor(Histone_PTM2()$Histone)), options = list(`actions-box` = TRUE),multiple = T)})
   output$picker4 <- renderUI({pickerInput("PTM_Residue","PTM Residue", choices=levels(factor(Histone_PTM2()$`PTM Residue`)), options = list(`actions-box` = TRUE),multiple = T)})
   
-  output$Dif_Anal_choice1 <- renderUI({selectInput("Dif_Anal_choice1","Dif_Anal_choice1", choices=levels(factor(Histone_PTM2()$Sample)))})
+  output$Dif_Anal_choice1 <- renderUI({selectInput("Dif_Anal_choice1","Sample Group for Differential Analysis", choices=levels(factor(Histone_PTM2()$Sample)))})
   
   # output$Sample_PTM_Barplot <- renderUI({selectInput("Sample_PTM_Barplot", "Sample Selction", choices = levels(factor(Histone_PTM2()$Sample)))})
   output$Sample_PTM_Barplot <- renderUI({pickerInput("Sample_BP","Sample Selection", choices=levels(factor(Histone_PTM2()$Sample)), options = list(`actions-box` = TRUE),multiple = T,
@@ -550,9 +560,6 @@ server <- function(input, output){
   Diff_Anal_Table <- reactive({differentialAnalysis(Histone_PTM2(), input$Dif_Anal_choice1)})
    
   ####Differential Analysis Chart####
-  # output$DFTable <-renderUI({bscols(datatable(as.data.frame(Diff_Anal_Table()), rownames = T, width = "99%", height = 500, extensions = c('Scroller', 'Buttons','FixedColumns'),
-  #                                                          options = list( scrollY = 400,  scroller = TRUE,  dom = "Bfrtip", fixedColumns = TRUE,
-  #                                                                          buttons = c('copy', 'csv', 'pdf', 'colvis'))))})
   output$DFTable <- renderDataTable(as.data.frame(Diff_Anal_Table()), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
                                                options = list(scroller = T, scrollY = 400, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf')))
   
@@ -600,7 +607,12 @@ server <- function(input, output){
       geom_bar(stat = 'identity', position = 'fill') + facet_grid(~ position) +
       scale_fill_manual("Legend", values = clrs) +
       scale_y_continuous(labels = scales::percent_format()) +
-      ggtitle(input$PTM_Barplot) + theme(plot.title = element_text(hjust = 0.5), axis.text = element_text(angle = 45, hjust = 1))
+      ggtitle("Global Histone PTM for", subtitle = input$PTM_Barplot) + 
+      theme(plot.title = element_text(hjust = 0.5, size = input$PTM_BP_title ), 
+            plot.subtitle = element_text(hjust = 0.5, size = input$PTM_BP_title - 5 ), 
+            axis.title = element_text(size = input$PTM_BP_axis_title),
+            axis.text = element_text(angle = 45, hjust = 1, size = input$PTM_BP_axis_txt))+ 
+      xlab(NULL) + ylab("Mean Beta Value")
 
     return(PTM_barplot)
   }
@@ -623,12 +635,17 @@ server <- function(input, output){
     heatmaply(scale(a), colors = colorRampPalette(brewer.pal(11, "BrBG")),Rowv = FALSE, Colv = F)
   })
   
+  # output$PTM_heatmaply <- renderPlotly({
+  #   a <- Diff_Anal_Table()[,c(1:(length(colnames(Diff_Anal_Table()))-2))]
+  #   heatmaply(a, scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(high = input$High_colour_DA, mid = input$Mid_colour_DA, low = input$Low_colour_DA))
+  # })
+  
   output$PCA <- renderPlot({
     autoplot(prcomp(Protein_Data_Values_Only()), shape = FALSE,  label.size = 4) + theme_classic()
   })
   
   
-  ####Protein####
+  ########################################################Protein###############################################################################
   ####Creates an Upload feature for the Protein Upload####
   output$contents2 <- renderTable({
     req(input$file2)
@@ -772,21 +789,21 @@ server <- function(input, output){
         xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_raw_title) + theme(plot.title = element_text(hjust = 0.5))
   })
   
-  norm_hist <- reactive({
-    ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
-      geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour, binwidth = input$hist_slider) + 
-      xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_norm_title) + theme(plot.title = element_text(hjust = 0.5))
-  })
+  # norm_hist <- reactive({
+  #   ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
+  #     geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour, binwidth = input$hist_slider) + 
+  #     xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_norm_title) + theme(plot.title = element_text(hjust = 0.5))
+  # })
   
   output$Histogram_Raw <- renderPlot({
     req(raw_hist())
     raw_hist()
     })
   
-  output$Histogram_Norm <- renderPlot({
-    req(norm_hist())
-    norm_hist()
-  })
+  # output$Histogram_Norm <- renderPlot({
+  #   req(norm_hist())
+  #   norm_hist()
+  # })
    
   ####Outputs the Dashboard Raw and Normalized Boxplot####
   raw_box <- reactive({
@@ -794,19 +811,20 @@ server <- function(input, output){
       xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_raw_title) + theme(plot.title = element_text(hjust = 0.5))
   })
   
-  norm_box <- reactive({
-    ggplot(melt(Protein_Data_Values_Only()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
-      xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_norm_title) + theme(plot.title = element_text(hjust = 0.5))
-  })
+  # norm_box <- reactive({
+  #   ggplot(melt(Protein_Data_Values_Only()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
+  #     xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_norm_title) + theme(plot.title = element_text(hjust = 0.5))
+  # })
   
   output$Boxplot_Raw <- renderPlot({
     req(raw_box())
     raw_box()
   })
-  output$Boxplot_Norm <- renderPlot({
-    req(norm_box())
-    norm_box()
-  })
+  
+  # output$Boxplot_Norm <- renderPlot({
+  #   req(norm_box())
+  #   norm_box()
+  # })
   
   ####Outputs the Dashboard MDS and PCA Plots####
   output$PCA <- renderPlot({
@@ -883,12 +901,12 @@ server <- function(input, output){
       ggsave(file,plot=raw_hist())
       }
     )
-  output$H_norm = downloadHandler(
-    filename = function(){paste("Normalized Histogram", input$dnld_options, sep=".")},
-    content = function(file){
-      ggsave(file,plot=norm_hist())
-    }
-  )
+  # output$H_norm = downloadHandler(
+  #   filename = function(){paste("Normalized Histogram", input$dnld_options, sep=".")},
+  #   content = function(file){
+  #     ggsave(file,plot=norm_hist())
+  #   }
+  # )
   
   output$B_raw = downloadHandler(
     filename = function(){paste("Raw Boxplot", input$dnld_options, sep=".")},
@@ -897,17 +915,17 @@ server <- function(input, output){
     }
   )
   
-  output$B_norm = downloadHandler(
-    filename = function(){paste("Normalized Boxplot", input$dnld_options, sep=".")},
-    content = function(file){
-      ggsave(file,plot=norm_box())
-    }
-  )
+  # output$B_norm = downloadHandler(
+  #   filename = function(){paste("Normalized Boxplot", input$dnld_options, sep=".")},
+  #   content = function(file){
+  #     ggsave(file,plot=norm_box())
+  #   }
+  # )
   
   output$PCA_dnld = downloadHandler(
     filename = function(){paste("PCA", input$dnld_options, sep=".")},
     content = function(file){
-      ggsave(file,plot=autoplot(prcomp(Protein_Data_Values_Only()), shape = FALSE,  label.size = 4) + theme_classic())
+      ggsave(file,plot=autoplot(prcomp(t(Protein_Data_Values_Only())), shape = FALSE,  label.size = 4) + theme_classic())
     }
   )
   
