@@ -228,7 +228,7 @@ ui <-shinyUI(
                               column(width = 4, sliderInput("logFC_Sig", "LogFC Significance Threshhold", step = .25,-4, 4, c(-2,2))),
                               column(width = 4, sliderInput("P.Val_thresh", "P-Value Threshhold", 0, 1, 0.05)),
                               column(width = 4, radioButtons("P.Value","P-Value",c("P-Value","Adj P-Value"), inline = T))),
-                            fluidRow(plotlyOutput("Volcano"),
+                            fluidRow(plotlyOutput("Volcano", height = 600, width = ),
                                      downloadButton("VC_plot", "Download")))),
                 fluidRow(
                   tabBox(width = 12,
@@ -845,7 +845,8 @@ server <- function(input, output){
      ggplotly(
        ggplot(results.coef1, aes(x=logFC, y=-log10(P.Value), 
                                  color = ifelse(results.coef1$logFC >= input$logFC_Sig[2] | results.coef1$logFC <= input$logFC_Sig[1] & results.coef1$P.Value < input$P.Val_thresh, "Significant", "Not Significant"),
-                                 text = paste("Protein :", results.coef1$Proteins, "\n", "Log Fold Change :", results.coef1$logFC ,"\n", "P Value :", ifelse(input$P.Value == "P-Value", results.coef1$P.Value, results.coef1$adj.P.Val)), key = key))+
+                                 text = paste("Protein :", results.coef1$Proteins, "\n", "Gene Name", results.coef1$Gene_ID,"\n", "Description", results.coef1$Description, "\n",
+                                              "Log Fold Change :", results.coef1$logFC ,"\n", "P Value :",  results.coef1$P.Value, "\n", "Adjusted P Value", results.coef1$adj.P.Val), key = key))+
       geom_point()+
       geom_vline(xintercept = c(input$logFC_Sig[1],input$logFC_Sig[2]), color = "black", linetype = "dashed")+
       geom_hline(yintercept = -log10(input$P.Val_thresh),color = "black", linetype ="dashed")+
@@ -853,12 +854,10 @@ server <- function(input, output){
                          values = c("Significant" = "red", "Not Significant" = "black"))+
       ylab(ifelse(input$P.Value == "P-Value",  "-log10(P-Value)", "-log10(Adj P-Value)")), tooltip = "text")
     
-     # ggplotly(ggplot(as.data.frame(VC(results.coef1())), aes(x=results.coef1()$logFC, y=-log10(results.coef1()$P.Value)))+
-     #  geom_point())
 
   })
   
-  
+  #ifelse(input$P.Value == "P-Value", results.coef1$P.Value, results.coef1$adj.P.Val)
 
   
   output$Datatable <- renderDataTable({
