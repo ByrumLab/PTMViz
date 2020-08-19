@@ -570,13 +570,7 @@ server <- function(input, output){
   ####Creating Bar Graphs for Histone PTMS####
   
   Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter(Histone %in% input$PTM_Barplot & c(Treatment %in% input$Treatment_BP))})
-  # Protein_Graph_Table2 <- reactive({Histone_PTM2()() %>% filter(Histone %in% "Histone H3.1" & Sample.Group %in% "Nucleus Accumbens" & Treatment %in% c("Control", "Treatment") & PTM.Residue %in% "k14")})
-  # Protein_Graph_Table <- reactive({Histone_PTM2() %>% filter("Sample Groups" %in% input$Sample_BP & Treatment %in% input$Treatment_BP & Histone %in% input$PTM_Barplot)})
-  
-  # PGT <- reactive({Protein_Graph_Table() %>% filter("PTM Residue" %in% input$Residue_BP)})
-  
 
-  
   P_Graph_Prep <- function(z, Tissue, Residue){
 
     z$PTM = trimws(z$PTM)
@@ -590,7 +584,7 @@ server <- function(input, output){
     colnames(aggregatedDF)[colnames(aggregatedDF) =="x"] = "Mean Beta-Value"
     temp = aggregatedDF[aggregatedDF$tissue %in% c(Tissue) & aggregatedDF$position %in% c(Residue),]
     temp$sample <- paste(temp$tissue, temp$treatment, sep = "_")
-    temp$modification = factor(temp$modification, levels = c("Acetyl", "Methyl", "Dimethyl", "Trimethyl", "Unmodified"))
+    temp$modification = factor(temp$modification, levels = c("Acetyl", "Methyl", "Dimethyl", "Trimethyl", "Phospho", "Unmodified"))
     temp$position = factor(temp$position, levels = unique(temp$position)[order(as.numeric(substring(unique(temp$position),2)))])
     
     
@@ -600,7 +594,7 @@ server <- function(input, output){
     }
     
     modificationList = unique(temp$modification)
-    clrs = gg_color_hue(5)
+    clrs = gg_color_hue(6)
     names(clrs) = modificationList
     
     PTM_barplot <- ggplot(temp, aes(x = if(input$PTM_mean_chkbx == F){sample}else{names}, y = `Mean Beta-Value`, fill = modification)) +
@@ -717,7 +711,6 @@ server <- function(input, output){
   output$PHOT_DT <- renderDataTable({
     DFP4()})
   
-  
   ####Create a values only DF####
   
   Values_only <- function(x, y){
@@ -760,20 +753,15 @@ server <- function(input, output){
   
   ####Actual work####
   
-  observeEvent(input$tst,{
-    print(colnames(Protein_Data()))
-  })
-  
   Protein_Data <- reactive({Process_Protein_data(Raw_Protein())})
   Protein_Data_Values_Only <- reactive({Values_only(Protein_Data(), DFP4())})
   results.coef1 <- reactive({LIMMA(Protein_Data_Values_Only(),DFP4(), Protein_Data())})
-  results.coef1_Sig <- reactive({results.coef1()[results.coef1()$logFC >= input$logFC_Sig[2] | results.coef1()$logFC <= input$logFC_Sig[1] & 
-                                                   if(input$P.Value == "P-Value"){results.coef1()$P.Value < input$P.Val_thresh} else {results.coef1()$adj.P.Val < input$P.Val_thresh},]
+  results.coef1_Sig <- reactive({results.coef1()[c((results.coef1()$logFC >= input$logFC_Sig[2] | results.coef1()$logFC <= input$logFC_Sig[1]) & results.coef1()$P.Value < input$P.Val_thresh) ,]
     })
   
   Sorting_Significant <- function(x,y){
-    Sig_results <- x[x$logFC >= input$logFC_Sig[2] | x$logFC <= input$logFC_Sig[1] &
-                       if(input$P.Value == "P-Value"){results.coef1()$P.Value < input$P.Val_thresh} else {results.coef1()$adj.P.Val < input$P.Val_thresh},]
+    
+    Sig_results <- results.coef1_Sig()
     Normal_int_data <- as.data.frame(y)
     Significant_int_data <- Normal_int_data[rownames(Normal_int_data) %in% rownames(Sig_results),]
     return(Significant_int_data)
@@ -782,50 +770,29 @@ server <- function(input, output){
   Significant <- reactive({Sorting_Significant(results.coef1(), Protein_Data_Values_Only())})
  
    
-  ####Outputs the Dashboard Raw and Normalized histogram####
+  ####Outputs the Dashboard histogram####
   raw_hist <- reactive({
      ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
         geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour) + 
         xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_raw_title) + theme(plot.title = element_text(hjust = 0.5))
   })
   
-  # norm_hist <- reactive({
-  #   ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
-  #     geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour, binwidth = input$hist_slider) + 
-  #     xlab(input$hist_xlab) + ylab(input$hist_ylab) + ggtitle(input$hist_norm_title) + theme(plot.title = element_text(hjust = 0.5))
-  # })
-  
   output$Histogram_Raw <- renderPlot({
     req(raw_hist())
     raw_hist()
     })
   
-  # output$Histogram_Norm <- renderPlot({
-  #   req(norm_hist())
-  #   norm_hist()
-  # })
-   
-  ####Outputs the Dashboard Raw and Normalized Boxplot####
+  ####Outputs the Dashboard Boxplot####
   raw_box <- reactive({
     ggplot(melt(Protein_Data_Values_Only()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
       xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_raw_title) + theme(plot.title = element_text(hjust = 0.5))
   })
-  
-  # norm_box <- reactive({
-  #   ggplot(melt(Protein_Data_Values_Only()), aes(x=variable, y=value)) + geom_boxplot(col = input$box_border_colour,fill = input$box_fill_colour) + 
-  #     xlab(input$box_xlab) + ylab(input$box_ylab) + ggtitle(input$box_norm_title) + theme(plot.title = element_text(hjust = 0.5))
-  # })
-  
+
   output$Boxplot_Raw <- renderPlot({
     req(raw_box())
     raw_box()
   })
-  
-  # output$Boxplot_Norm <- renderPlot({
-  #   req(norm_box())
-  #   norm_box()
-  # })
-  
+
   ####Outputs the Dashboard MDS and PCA Plots####
   output$PCA <- renderPlot({
     autoplot(prcomp(t(Protein_Data_Values_Only())), shape = FALSE,  label.size = 4) + theme_classic()
@@ -844,7 +811,7 @@ server <- function(input, output){
     
      ggplotly(
        ggplot(results.coef1, aes(x=logFC, y=-log10(P.Value), 
-                                 color = ifelse(results.coef1$logFC >= input$logFC_Sig[2] | results.coef1$logFC <= input$logFC_Sig[1] & results.coef1$P.Value < input$P.Val_thresh, "Significant", "Not Significant"),
+                                 color = ifelse((results.coef1$logFC >= input$logFC_Sig[2] | results.coef1$logFC <= input$logFC_Sig[1]) & results.coef1$P.Value < input$P.Val_thresh, "Significant", "Not Significant"),
                                  text = paste("Protein :", results.coef1$Proteins, "\n", "Gene Name", results.coef1$Gene_ID,"\n", "Description", results.coef1$Description, "\n",
                                               "Log Fold Change :", results.coef1$logFC ,"\n", "P Value :",  results.coef1$P.Value, "\n", "Adjusted P Value", results.coef1$adj.P.Val), key = key))+
       geom_point()+
@@ -857,7 +824,15 @@ server <- function(input, output){
 
   })
   
+
+  
   #ifelse(input$P.Value == "P-Value", results.coef1$P.Value, results.coef1$adj.P.Val)
+  
+  observeEvent(input$tst,{
+    print(head(Protein_Data()))
+    print(head(Protein_Data_Values_Only()))
+    print(head(results.coef1))
+  })
 
   
   output$Datatable <- renderDataTable({
@@ -892,6 +867,8 @@ server <- function(input, output){
   output$Heatmap_Sig <- renderPlotly({
     heatmaply(t(Significant()), scale = input$scl2, scale_fill_gradient_fun = ggplot2::scale_fill_gradient2(high = input$High_colour, mid = input$Mid_colour, low = input$Low_colour))
   })
+  
+
    
   ####Downloads figures####
   output$H_raw = downloadHandler(
