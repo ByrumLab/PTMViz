@@ -248,6 +248,8 @@ ui <-shinyUI(
                                       column(4,colourInput("Mid_colour_DA", label = "Choose Mid Value Color", value = "white")),
                                       column(4,colourInput("Low_colour_DA", label = "Choose Low Value Color", value = "green"))),
                                     fluidRow(
+                                      column(4,colourInput("Missing_colour_DA", label = "Choose Missing Value Color", value = "white"))),
+                                    fluidRow(
                                       column(6,radioButtons("scl3", "Scale",c('On','Off'), inline = T)),
                                       column(6,radioButtons("nmbr2", "Tile Numeric Values",c('On','Off'), inline = T))
                                     ),
@@ -702,14 +704,6 @@ server <- function(input, output){
     
   })
   
-  observeEvent(input$tst,{
-    print(Protein_Data_Sig_Values())
-  })
-  
-
-  
-  
-  
   ####Allows a file to be loaded into the tool as the PTM input####
   output$contents <- renderTable({
     req(input$file1)
@@ -737,13 +731,19 @@ server <- function(input, output){
   DF1 <- reactive({data.frame(File.Name= unique(Raw_Data()$MS.MS_sample_name),
                               Sample.Group= NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
                               Replicate= NA_integer_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
-                              Experimental.Group= factor(c("Control", "Treatment"), labels = c(input$name_control, input$name_treatment)),
+                              # Experimental.Group= factor(c(input$name_control, input$name_treatment), labels = c(input$name_control, input$name_treatment)),
+                              Experimental.Group = NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))],
                               stringsAsFactors= F,
                               Custom.ID= NA_character_[1:length(unique(Raw_Data()$MS.MS_sample_name))])})
   
   output$AC <- renderTable({
     req(Raw_Data())
     Raw_Data()
+  })
+  
+  observeEvent(input$tst,{
+    print(head(Raw_Data()))
+    print(DF1())
   })
   
   
@@ -869,7 +869,8 @@ server <- function(input, output){
   }
   
   
-  output$Histone_data_table <- renderDataTable(PTM_filter(Histone_PTM2()), server = F,rownames = F,extensions = c('Buttons','FixedColumns', 'Scroller'),
+  output$Histone_data_table <- renderDataTable(
+    PTM_filter(Histone_PTM2()), server = F,rownames = F,extensions = c('Buttons','FixedColumns', 'Scroller'),
                                                options = list(scroller = T, scrollY = 400, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf')))
   
   ####Differential Analysis####
@@ -885,21 +886,23 @@ server <- function(input, output){
     
     # limit to samples of interest
     df = df[df$Sample %in% Smple,]
-    
+   
     # create beta matrix like structur
     beta = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$groups)), dimnames = list(unique(df$fullPTM), unique(df$groups)))
     for(i in unique(df$groups)){
       beta[df[df$groups == i,]$fullPTM, i] = df[df$groups == i,]$'Beta Value'
     }
     
+    
     # defining treatments per sample
     treatmentDesign = NULL
     for(i in 1:ncol(beta)){
       treatmentDesign[i] = df$Treatment[colnames(beta)[i] == df$groups][1]
     }
-    
-    
+
     beta = cbind(beta, fullPTM = paste( "k", unlist(lapply(strsplit(rownames(beta), "k"), tail, n = 1)), sep = ""), histone = trimws(unlist(lapply(strsplit(rownames(beta), "k"), head, 1))))
+    
+    print("Problem1")
     
     duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
     while(duplicates){
@@ -927,18 +930,22 @@ server <- function(input, output){
     beta = beta[,!colnames(beta) %in% c("fullPTM", "histone")]
     
     class(beta) = "numeric"
-    
+    print("Problem2")
+    print(treatmentDesign)
     
     # differential analysis
     mvals = log2(beta / (1-beta))
+    print("problem3")
     design = model.matrix(~ treatmentDesign)
     limmaFit = lmFit(mvals, design)
     fit_eBayes <- eBayes(limmaFit)
     results.coef1 <- topTable(fit_eBayes, coef =1, numb = Inf, sort.by = "none")
+    print("Problem3")
     # pval = eBayes(limmaFit)$p.value[,2]
     fdr = p.adjust(results.coef1$P.Value, method = "fdr")
     results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
     results = round(results[order(results[,"pVal"]),],3)
+    print(results)
     
     return(results)
   }
@@ -946,7 +953,7 @@ server <- function(input, output){
   Diff_Anal_Table <- reactive({differentialAnalysis(Histone_PTM2(), input$Dif_Anal_choice1)})
   
   ####Differential Analysis Chart####
-  output$DFTable <- renderDataTable(as.data.frame(Diff_Anal_Table()), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
+  output$DFTable <- renderDataTable(Diff_Anal_Table(), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
                                     options = list(scroller = T, scrollY = 400, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf')))
   
   
@@ -980,7 +987,7 @@ server <- function(input, output){
     PTM_Barplot<- ggplot(temp, aes(x = sample, y = `Mean Beta-Value`, fill = modification)) +
       geom_bar(stat = 'identity', position = 'fill') + facet_grid(~ position) +
       scale_y_continuous(labels = scales::percent_format()) +
-      ggtitle("Global Histone PTM for", subtitle = input$PTM_BP_title_text) +
+      ggtitle("Global Histone PTM for", subtitle = input$PTM_Barplot) +
       theme(plot.title = element_text(hjust = 0.5, size = input$PTM_BP_title ),
             plot.subtitle = element_text(hjust = 0.5, size = c(input$PTM_BP_title-5)),
             axis.title = element_text(size = input$PTM_BP_yaxis_title),
@@ -1015,12 +1022,12 @@ server <- function(input, output){
       HMM <- melt(a)
     }
     
-    HeatM <- ggplot(HMM, aes( x = X2, y = X1)) + geom_tile(aes(fill= value)) +
+    HeatM <- ggplot(HMM, aes( x = X1, y = X2)) + geom_tile(aes(fill= value)) +
       theme(panel.grid.major.x=element_blank(), #no gridlines
             panel.grid.minor.x=element_blank(), 
             panel.grid.major.y=element_blank(), 
             panel.grid.minor.y=element_blank(),
-            panel.background=element_rect(fill="white"), # background=white
+            panel.background=element_rect(fill= input$Missing_colour_DA), # background=white
             axis.text.x = element_text(angle=45, hjust = 1,vjust=1,size = input$DA_xlab_size,face = "bold"),
             plot.title = element_text(hjust = 0.5, size=input$DA_title_size,face="bold"),
             axis.text.y = element_text(size = input$DA_ylab_size,face = "bold"))+
@@ -1048,13 +1055,6 @@ server <- function(input, output){
   
   ####Download options for each figure and graph####
   #Download Histogram#
-  # observeEvent(input$HS_DNLD,{
-  #   tiff("Hisogram.tiff", units="in", width=10, height=5, res=300)
-  #   raw_hist()
-  #   dev.off()
-  # })
-  
-  
   output$HS_DNLD = downloadHandler(
     filename = function(){paste("Histogram", input$dnld_options, sep=".")},
     content = function(file){
@@ -1164,11 +1164,6 @@ server <- function(input, output){
                device = input$dnld_options)
       }
     )
-  
-  
-  
-  
-  
   
   
 } 
