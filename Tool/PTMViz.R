@@ -14,7 +14,11 @@ library(rhandsontable)
 if (!require(e1071)) install.packages('e1071')
 library(e1071)
 
-if (!require(ggplot2)) install.packages('ggplot2')
+if (!require(ggplot2)) install.packages(
+  "ggplot2",
+  repos = c("http://rstudio.org/_packages",
+            "http://cran.rstudio.com")
+)
 library(ggplot2)
 
 if (!require(dplyr)) install.packages('dplyr')
@@ -443,7 +447,7 @@ server <- function(input, output){
   DFP1 <- reactive({data.frame(File.Name = colnames(Raw_Protein()[,-1]),
                                Sample.Group = NA_character_[1:length(colnames(Raw_Protein()[,-1]))],
                                Replicate = NA_integer_[1:length(colnames(Raw_Protein()[,-1]))],
-                               Experimental.Group = factor(c("Control", "Treatment")),
+                               Experimental.Group = factor(c(input$name_control_protein, input$name_treatment_protein)),
                                stringsAsFactors = F, 
                                Custom.ID=  NA_character_[1:length(colnames(Raw_Protein()[,-1]))])})
   
@@ -512,14 +516,17 @@ server <- function(input, output){
   Protein_Data_Sig_Values <- reactive({Protein_Data_Values_Only()[Significant_Proteins()$Gene_ID ,] })
   
     #Runs the Data through LIMMA to get the P-Value and Fold Change#
-    LIMMA <- function(x,y,z){
+    LIMMA <- function(x,y,z,c,t){
       limma_data_frame <- x
       DFP <- y
       
       vec <- DFP$Experimental.Group
       
-      
-      group <- factor(vec, levels=c("Control", "Treatment"))
+      group <- factor(vec, levels = c(c,t))
+      print(group)
+      levels(group) <- list("Control" = c, "Treatment" = t)
+      print(group)
+      # group <- factor(vec, levels=c("Control", "Treatment"))
       
       
       design = model.matrix(~0 + group)
@@ -544,7 +551,7 @@ server <- function(input, output){
       return(results.coef3)
     }
   
-  LIMMA_results <- reactive({LIMMA(Protein_Data_Values_Only(),DFP4(), Protein_Data())})
+  LIMMA_results <- reactive({LIMMA(Protein_Data_Values_Only(),DFP4(), Protein_Data(), input$name_control_protein, input$name_treatment_protein)})
   
   
   # A function to determine Statistically significant genes based on Limma results
@@ -679,10 +686,13 @@ server <- function(input, output){
             panel.background=element_rect(fill="white"), # background=white
             axis.text.x = element_text(angle=45, hjust = 1,vjust=1,size = input$HM_xlab_size,face = "bold"),
             plot.title = element_text(hjust = 0.5, size=input$HM_title_size,face="bold"),
-            axis.text.y = element_text(size = input$HM_ylab_size,face = "bold"))+
+            axis.text.y = element_text(size = input$HM_ylab_size,face = "bold"),
+            legend.title.align = 0.5,
+            legend.box.just = "center")+
       xlab(input$HM_xlab)+
       ylab(input$HM_ylab)+
       ggtitle(input$HM_title)+ 
+      labs(fill = "Protein \nExpression") +
       scale_fill_gradient2(low = input$Low_colour, 
                            mid = input$Mid_colour, 
                            high = input$High_colour, 
@@ -980,11 +990,11 @@ server <- function(input, output){
     modificationsList = unique(z$PTM)
     myColorScale <- brewer.pal(length(modificationsList),"Set1")
     names(myColorScale) <- levels(temp$modification)
-    colScale <- scale_fill_manual(name = z$PTM, values = myColorScale)
+    colScale <- scale_fill_manual(name = "PTM", values = myColorScale)
     
     
     
-    PTM_Barplot<- ggplot(temp, aes(x = sample, y = `Mean Beta-Value`, fill = modification)) +
+    PTM_Barplot<- ggplot(temp, aes(x = if(input$PTM_mean_chkbx == F){sample}else{names}, y = `Mean Beta-Value`, fill = modification)) +
       geom_bar(stat = 'identity', position = 'fill') + facet_grid(~ position) +
       scale_y_continuous(labels = scales::percent_format()) +
       ggtitle("Global Histone PTM for", subtitle = input$PTM_Barplot) +
@@ -993,7 +1003,7 @@ server <- function(input, output){
             axis.title = element_text(size = input$PTM_BP_yaxis_title),
             axis.text = element_text(angle = 45, hjust = 1, size = input$PTM_BP_axis_txt),
             strip.text.x = element_text(size = input$PTM_BP_residue_size, face = 'bold'))+
-      xlab(NULL) + ylab("Mean Beta Value") + colScale 
+      xlab(NULL) + ylab("Mean Beta Value") + colScale
     
     return(PTM_Barplot)
     
@@ -1034,6 +1044,7 @@ server <- function(input, output){
       xlab(input$DA_xlab)+
       ylab(input$DA_ylab)+
       ggtitle(input$DA_title)+ 
+      labs(fill = "M Value") +
       scale_fill_gradient2(low = input$Low_colour_DA, 
                            mid = input$Mid_colour_DA, 
                            high = input$High_colour_DA, 
