@@ -49,8 +49,8 @@ library(backports)
 if (!require(devtools)) install.packages("devtools")
 library(devtools)
 
-if (!require(heatmaply)) install.packages('heatmaply')
-library(heatmaply)
+# if (!require(heatmaply)) install.packages('heatmaply')
+# library(heatmaply)
 
 if (!require(ggfortify)) install.packages('ggfortify')
 library(ggfortify)
@@ -238,8 +238,12 @@ ui <-shinyUI(
                 
                 fluidRow(
                   tabBox(title = "Differntial Analysis", width = 12,
-                         tabPanel("Differential Analysis Table",
+                         tabPanel("Choose Data for Differential Analysis",
                                   uiOutput("Dif_Anal_choice1"),
+                                  uiOutput("Dif_Anal_choice2")
+                                  ), 
+                         tabPanel("Differential Analysis Table",
+                                  
                                   dataTableOutput("DFTable")),
                          tabPanel("Differential Analysis Heatmap",
                                   title = "Differential Analysis Heatmap",
@@ -571,7 +575,7 @@ server <- function(input, output){
   
 
   
-  #### Create a Histogram for the Data####
+  ####Create a Histogram for the Data####
   raw_hist <- reactive({
     ggplot(melt(Protein_Data_Values_Only()), aes(x = value)) + 
       geom_histogram(col = input$hist_border_colour,fill = input$hist_fill_colour, binwidth = input$hist_slider) + 
@@ -752,8 +756,7 @@ server <- function(input, output){
   })
   
   observeEvent(input$tst,{
-    print(head(Raw_Data()))
-    print(DF1())
+    citations()
   })
   
   
@@ -843,7 +846,8 @@ server <- function(input, output){
   output$picker3 <- renderUI({pickerInput("Histone","Histone", choices=levels(factor(Histone_PTM2()$Histone)), options = list(`actions-box` = TRUE),multiple = T)})
   output$picker4 <- renderUI({pickerInput("PTM_Residue","PTM Residue", choices=levels(factor(Histone_PTM2()$`PTM Residue`)), options = list(`actions-box` = TRUE),multiple = T)})
   
-  output$Dif_Anal_choice1 <- renderUI({selectInput("Dif_Anal_choice1","Sample Group for Differential Analysis", choices=levels(factor(Histone_PTM2()$Sample)))})
+  output$Dif_Anal_choice1 <- renderUI({selectInput("Dif_Anal_choice1","Control Group for Differential Analysis", choices=unique(paste(Histone_PTM2()$Sample, Histone_PTM2()$Treatment, sep = "_")))})
+  output$Dif_Anal_choice2 <- renderUI({selectInput("Dif_Anal_choice2","Treatment Group for Differential Analysis", choices=unique(paste(Histone_PTM2()$Sample, Histone_PTM2()$Treatment, sep = "_")))})
   
   # output$Sample_PTM_Barplot <- renderUI({selectInput("Sample_PTM_Barplot", "Sample Selction", choices = levels(factor(Histone_PTM2()$Sample)))})
   output$Sample_PTM_Barplot <- renderUI({pickerInput("Sample_BP","Sample Selection", choices=levels(factor(Histone_PTM2()$Sample)), options = list(`actions-box` = TRUE),multiple = T,
@@ -884,39 +888,129 @@ server <- function(input, output){
                                                options = list(scroller = T, scrollY = 400, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf')))
   
   ####Differential Analysis####
-  differentialAnalysis <- function(df, Smple){
-    # creating additional required varibles
+  # differentialAnalysis <- function(df, Smple){
+  #   # creating additional required varibles
+  #   
+  #   df$groups = paste(df$Sample, df$Replicate, df$Treatment, sep = "_")
+  #   df$fullPTM = paste(df$Histone, df$'PTM Residue', df$PTM, sep = " ")
+  #   
+  #   
+  #   # exclude unmodified
+  #   df = df[!grepl("Unmodified", df$PTM),]
+  #   
+  #   # limit to samples of interest
+  #   df = df[df$Sample %in% Smple,]
+  #  
+  #   # create beta matrix like structur
+  #   beta = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$groups)), dimnames = list(unique(df$fullPTM), unique(df$groups)))
+  #   for(i in unique(df$groups)){
+  #     beta[df[df$groups == i,]$fullPTM, i] = df[df$groups == i,]$'Beta Value'
+  #   }
+  #   
+  #   
+  #   # defining treatments per sample
+  #   treatmentDesign = NULL
+  #   for(i in 1:ncol(beta)){
+  #     treatmentDesign[i] = df$Treatment[colnames(beta)[i] == df$groups][1]
+  #   }
+  # 
+  #   beta = cbind(beta, fullPTM = paste( "k", unlist(lapply(strsplit(rownames(beta), "k"), tail, n = 1)), sep = ""), histone = trimws(unlist(lapply(strsplit(rownames(beta), "k"), head, 1))))
+  #   
+  #   print("Problem1")
+  #   
+  #   duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
+  #   while(duplicates){
+  #     identifyer = NULL
+  #     for(i in 1:nrow(beta)){
+  #       if(class(beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"]) == "matrix")
+  #         identifyer[i] = identical(beta[i,colnames(beta) != "histone"], beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"][1,])
+  #       if(class(beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"]) == "character")
+  #         identifyer[i] = identical(beta[i,colnames(beta) != "histone"], beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"])
+  #     }
+  #     removal = beta[identifyer,]
+  #     beta = beta[!identifyer,]
+  #     combinedHistones = str_replace(removal[,"histone"], "Histone ", "")
+  #     combinedHistones = paste("Histone", paste(combinedHistones[order(combinedHistones)], collapse = "|"), sep = " ")
+  #     removal[,"histone"] = combinedHistones
+  #     rownames(removal) = rep(paste(combinedHistones, removal[1,"fullPTM"], sep = " "), nrow(removal))
+  #     addition = removal[1,]
+  #     beta = rbind(beta, addition)
+  #     rownames(beta)[nrow(beta)] = rownames(removal)[1]
+  #     
+  #     duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
+  #   }
+  #   
+  #   
+  #   beta = beta[,!colnames(beta) %in% c("fullPTM", "histone")]
+  #   
+  #   class(beta) = "numeric"
+  #   print("Problem2")
+  #   print(treatmentDesign)
+  #   
+  #   # differential analysis
+  #   mvals = log2(beta / (1-beta))
+  #   print("problem3")
+  #   design = model.matrix(~ treatmentDesign)
+  #   limmaFit = lmFit(mvals, design)
+  #   fit_eBayes <- eBayes(limmaFit)
+  #   results.coef1 <- topTable(fit_eBayes, coef =1, numb = Inf, sort.by = "none")
+  #   print("Problem3")
+  #   # pval = eBayes(limmaFit)$p.value[,2]
+  #   fdr = p.adjust(results.coef1$P.Value, method = "fdr")
+  #   results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
+  #   results = round(results[order(results[,"pVal"]),],3)
+  #   print(results)
+  #   
+  #   return(results)
+  # }
+  
+  DE <- function(df1,x,y){
     
-    df$groups = paste(df$Sample, df$Replicate, df$Treatment, sep = "_")
-    df$fullPTM = paste(df$Histone, df$'PTM Residue', df$PTM, sep = " ")
+    split <- unlist(strsplit(df1$Histone, "\\Histone "))
+    split <- split[!c(split == "")]
     
     
-    # exclude unmodified
+    fullPTM <- paste(split, df1$'PTM Residue', df1$PTM, sep = " ")
+    treat <- paste(df1$'Sample Group', df1$Treatment, sep = "_")
+    df <- cbind(df1, fullPTM, treat)
+    print(df)
+    
+    ####limit to samples of interest####
+    df = df[df$treat %in% c(x, y),]
+    print(x)
+    print(y)
+    
+    ####exclude unmodified####
     df = df[!grepl("Unmodified", df$PTM),]
+    print(df)
     
-    # limit to samples of interest
-    df = df[df$Sample %in% Smple,]
-   
-    # create beta matrix like structur
-    beta = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$groups)), dimnames = list(unique(df$fullPTM), unique(df$groups)))
-    for(i in unique(df$groups)){
-      beta[df[df$groups == i,]$fullPTM, i] = df[df$groups == i,]$'Beta Value'
+    ####create beat and Mvalue matrix####
+    beta = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$'Custom ID')), dimnames = list(unique(df$fullPTM), unique(df$'Custom ID')))
+    for(i in unique(df$'Custom ID')){
+      beta[df[df$'Custom ID' == i,]$fullPTM, i] = df[df$'Custom ID' == i,]$'Beta Value'
     }
     
+    M = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$'Custom ID')), dimnames = list(unique(df$fullPTM), unique(df$'Custom ID')))
+    for(i in unique(df$'Custom ID')){
+      M[df[df$'Custom ID' == i,]$fullPTM, i] = df[df$'Custom ID' == i,]$'M Value'
+    }
     
-    # defining treatments per sample
     treatmentDesign = NULL
     for(i in 1:ncol(beta)){
-      treatmentDesign[i] = df$Treatment[colnames(beta)[i] == df$groups][1]
+      treatmentDesign[i] = df$Treatment[colnames(beta)[i] == df$'Custom ID'][1]
     }
-
+    
     beta = cbind(beta, fullPTM = paste( "k", unlist(lapply(strsplit(rownames(beta), "k"), tail, n = 1)), sep = ""), histone = trimws(unlist(lapply(strsplit(rownames(beta), "k"), head, 1))))
     
-    print("Problem1")
+    ####Check for duplicates in Beta Matrix####
+    #Checks for duplicate rows within the matrix
     
     duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
+    
     while(duplicates){
+      
       identifyer = NULL
+      
       for(i in 1:nrow(beta)){
         if(class(beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"]) == "matrix")
           identifyer[i] = identical(beta[i,colnames(beta) != "histone"], beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"][1,])
@@ -924,43 +1018,87 @@ server <- function(input, output){
           identifyer[i] = identical(beta[i,colnames(beta) != "histone"], beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"])
       }
       removal = beta[identifyer,]
+      
       beta = beta[!identifyer,]
+      
       combinedHistones = str_replace(removal[,"histone"], "Histone ", "")
-      combinedHistones = paste("Histone", paste(combinedHistones[order(combinedHistones)], collapse = "|"), sep = " ")
+      
+      combinedHistones = paste(combinedHistones[order(combinedHistones)], collapse = "|")
+      
       removal[,"histone"] = combinedHistones
+      
       rownames(removal) = rep(paste(combinedHistones, removal[1,"fullPTM"], sep = " "), nrow(removal))
+      
       addition = removal[1,]
+      
       beta = rbind(beta, addition)
+      
       rownames(beta)[nrow(beta)] = rownames(removal)[1]
       
       duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
     }
     
-    
     beta = beta[,!colnames(beta) %in% c("fullPTM", "histone")]
     
     class(beta) = "numeric"
-    print("Problem2")
-    print(treatmentDesign)
     
-    # differential analysis
-    mvals = log2(beta / (1-beta))
-    print("problem3")
-    design = model.matrix(~ treatmentDesign)
-    limmaFit = lmFit(mvals, design)
+    
+    ####Check for duplicates in M Matrix####
+    #Checks for duplicate rows within the matrix
+    
+    M = cbind(M, fullPTM = paste( "k", unlist(lapply(strsplit(rownames(M), "k"), tail, n = 1)), sep = ""), histone = trimws(unlist(lapply(strsplit(rownames(M), "k"), head, 1))))
+    
+    duplicates = any(duplicated(M[,colnames(M) != "histone"]))
+    
+    while(duplicates){
+      
+      identifyer = NULL
+      
+      for(i in 1:nrow(M)){
+        if(class(M[duplicated(M[,colnames(M) != "histone"]),colnames(M) != "histone"]) == "matrix")
+          identifyer[i] = identical(M[i,colnames(M) != "histone"], M[duplicated(M[,colnames(M) != "histone"]),colnames(M) != "histone"][1,])
+        if(class(M[duplicated(M[,colnames(M) != "histone"]),colnames(M) != "histone"]) == "character")
+          identifyer[i] = identical(M[i,colnames(M) != "histone"], M[duplicated(M[,colnames(M) != "histone"]),colnames(M) != "histone"])
+      }
+      removal = M[identifyer,]
+      
+      M = M[!identifyer,]
+      
+      combinedHistones = str_replace(removal[,"histone"], "Histone ", "")
+      
+      combinedHistones = paste(combinedHistones[order(combinedHistones)], collapse = "|")
+      
+      removal[,"histone"] = combinedHistones
+      
+      rownames(removal) = rep(paste(combinedHistones, removal[1,"fullPTM"], sep = " "), nrow(removal))
+      
+      addition = removal[1,]
+      
+      M = rbind(M, addition)
+      
+      rownames(M)[nrow(M)] = rownames(removal)[1]
+      
+      duplicates = any(duplicated(M[,colnames(M) != "histone"]))
+    }
+    
+    M = M[,!colnames(M) %in% c("fullPTM", "histone")]
+    
+    class(M) = "numeric"
+    
+    ####Limma####
+    
+    design = model.matrix(~0 + treatmentDesign)
+    limmaFit = lmFit(M, design)
     fit_eBayes <- eBayes(limmaFit)
     results.coef1 <- topTable(fit_eBayes, coef =1, numb = Inf, sort.by = "none")
-    print("Problem3")
-    # pval = eBayes(limmaFit)$p.value[,2]
     fdr = p.adjust(results.coef1$P.Value, method = "fdr")
     results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
     results = round(results[order(results[,"pVal"]),],3)
-    print(results)
     
     return(results)
   }
   
-  Diff_Anal_Table <- reactive({differentialAnalysis(Histone_PTM2(), input$Dif_Anal_choice1)})
+  Diff_Anal_Table <- reactive({DE(Histone_PTM2(), input$Dif_Anal_choice1, input$Dif_Anal_choice2)})
   
   ####Differential Analysis Chart####
   output$DFTable <- renderDataTable(Diff_Anal_Table(), server = F,rownames = T,extensions = c('Buttons','FixedColumns', 'Scroller'),
