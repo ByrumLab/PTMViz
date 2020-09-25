@@ -237,7 +237,7 @@ ui <-shinyUI(
                 
                 
                 fluidRow(
-                  tabBox(title = "Differntial Analysis", width = 12,
+                  tabBox(title = "Differential Analysis", width = 12,
                          tabPanel("Choose Data for Differential Analysis",
                                   uiOutput("Dif_Anal_choice1"),
                                   uiOutput("Dif_Anal_choice2")
@@ -527,9 +527,9 @@ server <- function(input, output){
       vec <- DFP$Experimental.Group
       
       group <- factor(vec, levels = c(c,t))
-      print(group)
+     
       levels(group) <- list("Control" = c, "Treatment" = t)
-      print(group)
+     
       # group <- factor(vec, levels=c("Control", "Treatment"))
       
       
@@ -888,81 +888,6 @@ server <- function(input, output){
                                                options = list(scroller = T, scrollY = 400, scrollX=T, fixedColumns = T , dom = "Bfrtip", buttons = c('copy', 'csv', 'pdf')))
   
   ####Differential Analysis####
-  # differentialAnalysis <- function(df, Smple){
-  #   # creating additional required varibles
-  #   
-  #   df$groups = paste(df$Sample, df$Replicate, df$Treatment, sep = "_")
-  #   df$fullPTM = paste(df$Histone, df$'PTM Residue', df$PTM, sep = " ")
-  #   
-  #   
-  #   # exclude unmodified
-  #   df = df[!grepl("Unmodified", df$PTM),]
-  #   
-  #   # limit to samples of interest
-  #   df = df[df$Sample %in% Smple,]
-  #  
-  #   # create beta matrix like structur
-  #   beta = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$groups)), dimnames = list(unique(df$fullPTM), unique(df$groups)))
-  #   for(i in unique(df$groups)){
-  #     beta[df[df$groups == i,]$fullPTM, i] = df[df$groups == i,]$'Beta Value'
-  #   }
-  #   
-  #   
-  #   # defining treatments per sample
-  #   treatmentDesign = NULL
-  #   for(i in 1:ncol(beta)){
-  #     treatmentDesign[i] = df$Treatment[colnames(beta)[i] == df$groups][1]
-  #   }
-  # 
-  #   beta = cbind(beta, fullPTM = paste( "k", unlist(lapply(strsplit(rownames(beta), "k"), tail, n = 1)), sep = ""), histone = trimws(unlist(lapply(strsplit(rownames(beta), "k"), head, 1))))
-  #   
-  #   print("Problem1")
-  #   
-  #   duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
-  #   while(duplicates){
-  #     identifyer = NULL
-  #     for(i in 1:nrow(beta)){
-  #       if(class(beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"]) == "matrix")
-  #         identifyer[i] = identical(beta[i,colnames(beta) != "histone"], beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"][1,])
-  #       if(class(beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"]) == "character")
-  #         identifyer[i] = identical(beta[i,colnames(beta) != "histone"], beta[duplicated(beta[,colnames(beta) != "histone"]),colnames(beta) != "histone"])
-  #     }
-  #     removal = beta[identifyer,]
-  #     beta = beta[!identifyer,]
-  #     combinedHistones = str_replace(removal[,"histone"], "Histone ", "")
-  #     combinedHistones = paste("Histone", paste(combinedHistones[order(combinedHistones)], collapse = "|"), sep = " ")
-  #     removal[,"histone"] = combinedHistones
-  #     rownames(removal) = rep(paste(combinedHistones, removal[1,"fullPTM"], sep = " "), nrow(removal))
-  #     addition = removal[1,]
-  #     beta = rbind(beta, addition)
-  #     rownames(beta)[nrow(beta)] = rownames(removal)[1]
-  #     
-  #     duplicates = any(duplicated(beta[,colnames(beta) != "histone"]))
-  #   }
-  #   
-  #   
-  #   beta = beta[,!colnames(beta) %in% c("fullPTM", "histone")]
-  #   
-  #   class(beta) = "numeric"
-  #   print("Problem2")
-  #   print(treatmentDesign)
-  #   
-  #   # differential analysis
-  #   mvals = log2(beta / (1-beta))
-  #   print("problem3")
-  #   design = model.matrix(~ treatmentDesign)
-  #   limmaFit = lmFit(mvals, design)
-  #   fit_eBayes <- eBayes(limmaFit)
-  #   results.coef1 <- topTable(fit_eBayes, coef =1, numb = Inf, sort.by = "none")
-  #   print("Problem3")
-  #   # pval = eBayes(limmaFit)$p.value[,2]
-  #   fdr = p.adjust(results.coef1$P.Value, method = "fdr")
-  #   results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
-  #   results = round(results[order(results[,"pVal"]),],3)
-  #   print(results)
-  #   
-  #   return(results)
-  # }
   
   DE <- function(df1,x,y){
     
@@ -973,16 +898,15 @@ server <- function(input, output){
     fullPTM <- paste(split, df1$'PTM Residue', df1$PTM, sep = " ")
     treat <- paste(df1$'Sample Group', df1$Treatment, sep = "_")
     df <- cbind(df1, fullPTM, treat)
-    print(df)
+    
     
     ####limit to samples of interest####
     df = df[df$treat %in% c(x, y),]
-    print(x)
-    print(y)
+
     
     ####exclude unmodified####
     df = df[!grepl("Unmodified", df$PTM),]
-    print(df)
+
     
     ####create beat and Mvalue matrix####
     beta = matrix(NA, nrow = length(unique(df$fullPTM)), ncol = length(unique(df$'Custom ID')), dimnames = list(unique(df$fullPTM), unique(df$'Custom ID')))
@@ -1086,11 +1010,34 @@ server <- function(input, output){
     class(M) = "numeric"
     
     ####Limma####
+  
+    vec = NULL
+    for(i in 1:ncol(M)){
+      vec[i] <- unique(df[colnames(M)[i] == df$'Custom ID', 14])
+      vec[i] <- ifelse(x == vec[i], "control", "treatment")
+    }
+    print(vec)
     
-    design = model.matrix(~0 + treatmentDesign)
-    limmaFit = lmFit(M, design)
-    fit_eBayes <- eBayes(limmaFit)
-    results.coef1 <- topTable(fit_eBayes, coef =1, numb = Inf, sort.by = "none")
+    group <- factor(vec, levels= c("control", "treatment"))
+    print(group)
+    
+    design = model.matrix(~0 + group)
+    colnames(design) <- levels(group)
+    
+    contr.matrix = makeContrasts(
+      treatmentvscontrol = treatment - control,
+      levels = colnames(design))
+    contr.matrix
+    
+    design
+    
+    fit <- lmFit(M, design)
+    
+    cont_fit <- contrasts.fit(fit, contr.matrix)
+    
+    fit2 <- eBayes(cont_fit)
+    results.coef1 <- topTable(fit2, coef=1, number=Inf, sort.by="none")
+    
     fdr = p.adjust(results.coef1$P.Value, method = "fdr")
     results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
     results = round(results[order(results[,"pVal"]),],3)
@@ -1182,7 +1129,7 @@ server <- function(input, output){
       xlab(input$DA_xlab)+
       ylab(input$DA_ylab)+
       ggtitle(input$DA_title)+ 
-      labs(fill = "M Value") +
+      labs(fill = "Beta Value") +
       scale_fill_gradient2(low = input$Low_colour_DA, 
                            mid = input$Mid_colour_DA, 
                            high = input$High_colour_DA, 
