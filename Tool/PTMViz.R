@@ -114,14 +114,14 @@ ui <-shinyUI(
       sidebarMenu(
         menuItem("Protein", tabName = "Protein",
                  menuSubItem("Protein Upload", tabName = "Upload2"),
-                 menuSubItem("Preliminary", tabName = "Preliminary"),
-                 menuSubItem("Protein_Data", tabName = "Data")),
+                 menuSubItem("Preliminary Analysis", tabName = "Preliminary"),
+                 menuSubItem("Protein Analysis", tabName = "Data")),
         menuItem("PTM", tabName = "PTM",
                  menuSubItem("PTM Upload", tabName = "Upload1"),
-                 menuSubItem("Post Translational Modifications", tabName = "PTM2")
+                 menuSubItem("PTM Analysis", tabName = "PTM2")
         ),
-        menuItem("Figure Settings", tabName = "Figure_Settings"),
-        actionBttn("tst", "Test")
+        menuItem("Figure Settings", tabName = "Figure_Settings")
+        # actionBttn("tst", "Test")
       )),
     dashboardBody(
       tabItems(
@@ -378,8 +378,8 @@ ui <-shinyUI(
                   box( width = 12,
                        column( width = 6,
                                title = "Edit", 
-                               column(width = 6, textInput('name_control', label =h3("Name of Control"), value = "Control")),
-                               column(width = 6, textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment")),
+                               # column(width = 6, textInput('name_control', label =h3("Name of Control"), value = "Control")),
+                               # column(width = 6, textInput('name_treatment', label = h3("Name of Treatment"), value = "Treatment")),
                                rHandsontableOutput("AB"),
                                actionButton("Update", label = "Update Data")),
                        column( width = 6,
@@ -400,7 +400,7 @@ ui <-shinyUI(
                        column(width = 9, tableOutput("contents2"))),
                   
                   fluidRow(
-                    box(title = "Edit2", width = 12,
+                    box(title = "Data Labels", width = 12,
                         column(width = 6,
                                column(width = 6, textInput('name_control_protein', label =h3("Name of Control"), value = "Control")),
                                column(width = 6, textInput('name_treatment_protein', label = h3("Name of Treatment"), value = "Treatment")),
