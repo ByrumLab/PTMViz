@@ -15,7 +15,7 @@ library(stringr) # extract substring
 source("fixPTM_sg.R")
 
 # read in S2 file
-full_df = read.table("S2_extracted_intensities (2).txt", header = T, sep = "\t", check.names = F) 
+full_df = read.table("S2_extracted_intensities (3).txt", header = T, sep = "\t", check.names = F) 
 
 # remove "DECOY" lines (I didn't have any)
 full_df = full_df[!grepl("DECOY", full_df$Protein_name),]
@@ -164,7 +164,9 @@ PTM7$Abundance = PTM7$Intensity / PTM7$Total_intensity
 PTM7 = PTM7[order(PTM7$`MS/MS_sample_name`, PTM7$Protein_name, PTM7$PTM_residues),]
 PTM7$betaValue = PTM7$Intensity / (PTM7$Total_intensity + 100)
 PTM7$MValue = log2( PTM7$betaValue / (1-PTM7$betaValue))
-write.csv(PTM7, file = "WangS3.csv", row.names = F, quote = F)
+write.csv(PTM7, file = "BRCA.csv", row.names = F, quote = F)
+
+
 # write.table(PTM7, file = "S3_single_output_sg.txt", quote = F, sep = "\t", row.names = F)
 # 
 # S3 <- read.delim("S3_single_output_sg.txt")
