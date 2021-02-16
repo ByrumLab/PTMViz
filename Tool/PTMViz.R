@@ -288,11 +288,11 @@ ui <-shinyUI(
                                   dataTableOutput("Datatable")),
                          tabPanel("Significant Data",
                                   dataTableOutput("Datatable_Sig")),
-                         tabPanel("Modificcation Proteins",
+                         tabPanel("Modification Proteins",
                                   dataTableOutput("ModProt")),
                          tabPanel("All Intensity Data",
                                   dataTableOutput("Datatable_I")),
-                         tabPanel("Significant Intesnity Data",
+                         tabPanel("Significant Intensity Data",
                                   dataTableOutput("Datatable_I_Sig")))),
                 fluidRow(
                   tabBox( width = 12, title =" Volcano Plot",
@@ -1976,45 +1976,6 @@ server <- function(input, output){
   ####Create the Heatmaps for the Protein Data####
   
   # HeatMP <- reactive({
-  #   HM <- Protein_Data_Sig_Values()
-  #   HM["Gene_ID"] <- rownames(HM)
-  #   
-  #   if(input$scl2 == 'On'){
-  #     HMM <- melt(HM)
-  #     HMM['value'] <- scale(HMM['value'])
-  #   }else{
-  #     HMM <- melt(HM)
-  #   }
-  #   
-  #   HeatM <- ggplot(HMM, aes( x = Gene_ID, y = variable)) + geom_tile(aes(fill= value)) +
-  #     theme(panel.grid.major.x=element_blank(), #no gridlines
-  #           panel.grid.minor.x=element_blank(), 
-  #           panel.grid.major.y=element_blank(), 
-  #           panel.grid.minor.y=element_blank(),
-  #           panel.background=element_rect(fill="white"), # background=white
-  #           axis.text.x = element_text(angle=45, hjust = 1,vjust=1,size = input$HM_xlab_size,face = "bold"),
-  #           plot.title = element_text(hjust = 0.5, size=input$HM_title_size,face="bold"),
-  #           axis.text.y = element_text(size = input$HM_ylab_size,face = "bold"),
-  #           legend.title.align = 0.5,
-  #           legend.box.just = "center")+
-  #     xlab(input$HM_xlab)+
-  #     ylab(input$HM_ylab)+
-  #     ggtitle(input$HM_title)+ 
-  #     labs(fill = "Protein \nExpression") +
-  #     scale_fill_gradient2(low = input$Low_colour, 
-  #                          mid = input$Mid_colour, 
-  #                          high = input$High_colour, 
-  #                          midpoint = 0)
-  #   
-  #   if(input$nmbr == "On"){
-  #     HeatM2 <- HeatM + geom_text(aes(fill = value, label = round(value, 2)))
-  #   } else {
-  #     HeatM2 <- HeatM
-  #   }
-  #   
-  #   return(HeatM2)
-  #   
-  # })
  
  HeatMP <- reactive({
    HM <- Protein_Data_Sig_Values()
@@ -2560,11 +2521,11 @@ server <- function(input, output){
     content = function(file){
       results.coef1 <- LIMMA_results()
       ggsave(file,plot=ggplot(results.coef1, aes(x=logFC, y=-log10(P.Value), 
-                                                 color = ifelse(Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", "Not Significant")))+
+                                                 color = ifelse(Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", ifelse(Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", "Not Significant"))))+
                geom_point()+
                geom_vline(xintercept = c(input$logFC_Sig[1],input$logFC_Sig[2]), color = "black", linetype = "dashed")+
                geom_hline(yintercept = -log10(input$P.Val_thresh),color = "black", linetype ="dashed")+
-               scale_color_manual(name = "Threshold", values = c("Significant" = input$VC_Sig_color, "Not Significant" = input$VC_notSig_color))+
+               scale_color_manual(name = "Threshold", values = c("Significant" = input$VC_Sig_color, "Not Significant" = input$VC_notSig_color, "Modification Protein" = "blue"))+
                ylab(ifelse(input$P.Value == "P-Value",  "-log10(P-Value)", "-log10(Adj P-Value)")) +
                ggtitle(input$VC_title) +
                xlab(input$VC_xlab) +
@@ -2578,7 +2539,7 @@ server <- function(input, output){
              units = input$unit,
              dpi = input$dpi,
              device = input$dnld_options
-             )
+      )
     }
   )
   
@@ -2595,6 +2556,9 @@ server <- function(input, output){
              device = input$dnld_options)
     }
   )
+  
+  
+  
   #Download PTM BarChart#
   
   output$PTM_DNLD = downloadHandler(
