@@ -120,8 +120,8 @@ ui <-shinyUI(
                  menuSubItem("PTM Upload", tabName = "Upload1"),
                  menuSubItem("PTM Analysis", tabName = "PTM2")
         ),
-        menuItem("Figure Settings", tabName = "Figure_Settings"),
-        actionBttn("tst", "Test")
+        menuItem("Figure Settings", tabName = "Figure_Settings")
+        # actionBttn("tst", "Test")
       )),
     dashboardBody(
       tabItems(
