@@ -566,8 +566,7 @@ server <- function(input, output){
   # Mofifying_Proteins <- reactive({LIMMA_results()[LIMMA_results()$Gene_ID %in% Mouse_Modification_proteins()$Gene.Name,]})
   
   observeEvent(input$tst,{
-    print(exists("Org"))
-    print(Org())
+    print(sessionInfo())
   })
   
   
