@@ -104,7 +104,7 @@ library(scales)
 
 
 #### Shiny App####
-options(stringsAsFactors = F)
+options(stringsAsFactors = F, warn = -1)
 ####Shiny UI####
 ui <-shinyUI(
   ####Creates the general format####
@@ -120,8 +120,8 @@ ui <-shinyUI(
                  menuSubItem("PTM Upload", tabName = "Upload1"),
                  menuSubItem("PTM Analysis", tabName = "PTM2")
         ),
-        menuItem("Figure Settings", tabName = "Figure_Settings")
-        # actionBttn("tst", "Test")
+        menuItem("Figure Settings", tabName = "Figure_Settings"),
+        actionBttn("tst", "Test")
       )),
     dashboardBody(
       tabItems(
@@ -259,6 +259,7 @@ ui <-shinyUI(
                                       column(4,colourInput("Missing_colour_DA", label = "Choose Missing Value Color", value = "white"))),
                                     fluidRow(
                                       column(6,radioButtons("scl3", "Scale",c('On','Off'), inline = T)),
+                                      column(6,radioButtons("betaM", "Value Type",c('Beta','M'), inline = T)),
                                       column(6,radioButtons("nmbr2", "Tile Numeric Values",c('On','Off'), inline = T))
                                     ),
                                     fluidRow(
@@ -565,9 +566,7 @@ server <- function(input, output){
   Mofifying_Proteins <- reactive({LIMMA_results()[LIMMA_results()$Gene_ID %in% Org()$Gene.Name,]})
   # Mofifying_Proteins <- reactive({LIMMA_results()[LIMMA_results()$Gene_ID %in% Mouse_Modification_proteins()$Gene.Name,]})
   
-  observeEvent(input$tst,{
-    print(sessionInfo())
-  })
+
   
   
   
@@ -661,13 +660,16 @@ server <- function(input, output){
   
   ####Create the Volcano Plot using Plotly####
   output$Volcano <- renderPlotly({
-    results.coef1 <- LIMMA_results() %>% mutate_if(is.numeric, round, 3)
+    results.coef1 <- LIMMA_results() %>% mutate_if(is.numeric, round, Inf)
+    results.coef1$point <- ifelse(results.coef1$Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", ifelse(results.coef1$Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", "Not Significant"))
+    results.coef1$order <- ifelse(results.coef1$point == "Significant",1,ifelse(results.coef1$point == "Modification Protein",2,3))
     key = results.coef1$Gene_ID
     
     
     ggplotly(
       ggplot(results.coef1, aes(x=logFC, y=-log10(P.Value), 
-                                color = ifelse(Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", ifelse(Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", "Not Significant")),
+                                color = point,
+                                order = order,
                                 text = paste("Protein :", Uniprot_ID, "\n", "Gene Name", Gene_ID,"\n", "Description", Description, "\n",
                                              "Log Fold Change :", logFC ,"\n", "P Value :",  P.Value, "\n", "Adjusted P Value", adj.P.Val), key = key))+
         geom_point()+
@@ -683,6 +685,25 @@ server <- function(input, output){
               axis.title.x = element_text(size = input$VC_xlab_size, face = "bold"),
               axis.title.y = element_text(size = input$VC_ylab_size, face = "bold"))
       , tooltip = "text") 
+    
+    # ggplotly(
+    #   ggplot(results.coef1, aes(x=logFC, y=-log10(P.Value), 
+    #                             color = ifelse(Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", ifelse(Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", "Not Significant")),
+    #                             text = paste("Protein :", Uniprot_ID, "\n", "Gene Name", Gene_ID,"\n", "Description", Description, "\n",
+    #                                          "Log Fold Change :", logFC ,"\n", "P Value :",  P.Value, "\n", "Adjusted P Value", adj.P.Val), key = key))+
+    #     geom_point()+
+    #     geom_vline(xintercept = c(input$logFC_Sig[1],input$logFC_Sig[2]), color = "black", linetype = "dashed")+
+    #     geom_hline(yintercept = -log10(input$P.Val_thresh),color = "black", linetype ="dashed")+
+    #     scale_color_manual(name = "Threshold", values = c("Significant" = input$VC_Sig_color, "Not Significant" = input$VC_notSig_color, "Modification Protein" = "blue"))+
+    #     ylab(ifelse(input$P.Value == "P-Value",  "-log10(P-Value)", "-log10(Adj P-Value)")) +
+    #     ggtitle(input$VC_title) +
+    #     xlab(input$VC_xlab) +
+    #     theme(axis.text.x = element_text(hjust = 1, vjust=1,size = 12),
+    #           plot.title = element_text(hjust = 0.5, size= input$VC_title_size, face="bold"),
+    #           axis.text.y = element_text(size = 12, face = "bold"),
+    #           axis.title.x = element_text(size = input$VC_xlab_size, face = "bold"),
+    #           axis.title.y = element_text(size = input$VC_ylab_size, face = "bold"))
+    #   , tooltip = "text") 
         
   })
   
@@ -2330,6 +2351,10 @@ server <- function(input, output){
     
     class(M) = "numeric"
     
+    observeEvent(input$tst,{
+      print(M)
+    })
+    
     ####Limma####
   
     vec = NULL
@@ -2360,11 +2385,30 @@ server <- function(input, output){
     results.coef1 <- topTable(fit2, coef=1, number=Inf, sort.by="none")
     
     fdr = p.adjust(results.coef1$P.Value, method = "fdr")
-    results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
+    #results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
+    
+    #ifelse(input$betaM == "Beta", results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta), results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, M))
+    
+    #results = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, ifelse(input$betaM == "Beta", beta, M))
+    
+    #results = ifelse(input$betaM == "Beta", cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta), cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, M))
+    
+    
+    
+    A = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, beta)
+    B = cbind('Fold Change' = results.coef1$logFC,pVal = results.coef1$P.Value, FDR = fdr, M)
+
+    #results = ifelse(input$betaM == "Beta", A, B)
+    if(input$betaM == "Beta"){
+      results = A
+    } else {
+      results = B
+    }
     results = round(results[order(results[,"pVal"]),],3)
     
     return(results)
   }
+  
   
   Diff_Anal_Table <- reactive({DE(Histone_PTM2(), input$Dif_Anal_choice1, input$Dif_Anal_choice2)})
   

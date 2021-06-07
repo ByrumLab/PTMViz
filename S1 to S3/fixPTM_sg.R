@@ -4,7 +4,7 @@ fix_PTMs <- function(df){
   # df$Peptide_start_index <- ifelse(grepl("Histone H", df$Protein_name),
   #                                  df$Peptide_start_index-1L,
   #                                  df$Peptide_start_index)
-  df$Peptide_start_index <- df$Peptide_start_index-2
+  df$Peptide_start_index <- df$Peptide_start_index-1
   
   # Filters for rows with modifications (excludes TMT)
   keepPTM = str_detect(df$Variable_modifications_identified_by_spectrum, "(?<=[[:alpha:]])[[:digit:]]+(?=\\: (Acetyl |Methyl|Dimethyl|Trimethyl|GlyGly|Phospho))")
