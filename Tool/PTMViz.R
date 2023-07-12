@@ -120,8 +120,8 @@ ui <-shinyUI(
                  menuSubItem("PTM Upload", tabName = "Upload1"),
                  menuSubItem("PTM Analysis", tabName = "PTM2")
         ),
-        menuItem("Figure Settings", tabName = "Figure_Settings"),
-        actionBttn("tst", "Test")
+        menuItem("Figure Settings", tabName = "Figure_Settings") #,
+     #   actionBttn("tst", "Test")
       )),
     dashboardBody(
       tabItems(
@@ -201,7 +201,7 @@ ui <-shinyUI(
         
         
         ####PTM Page####
-        tabItem(tabName = "PTM2", h1("Post Translational Modification"),
+        tabItem(tabName = "PTM2", h1("Posttranslational Modification"),
                 fluidRow(
                   # box( width = 3, uiOutput("picker1"), uiOutput("picker2"), uiOutput("picker3"), uiOutput("picker4")
                   #      ),
@@ -661,8 +661,10 @@ server <- function(input, output){
   ####Create the Volcano Plot using Plotly####
   output$Volcano <- renderPlotly({
     results.coef1 <- LIMMA_results() %>% mutate_if(is.numeric, round, Inf)
-    results.coef1$point <- ifelse(results.coef1$Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", ifelse(results.coef1$Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", "Not Significant"))
-    results.coef1$order <- ifelse(results.coef1$point == "Significant",1,ifelse(results.coef1$point == "Modification Protein",2,3))
+   # results.coef1$point <- ifelse(results.coef1$Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", ifelse(results.coef1$Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", "Not Significant"))
+    results.coef1$point <- ifelse(results.coef1$Gene_ID %in% Mofifying_Proteins()$Gene_ID, "Modification Protein", ifelse(results.coef1$Gene_ID %in% Significant_Proteins()$Gene_ID, "Significant", "Not Significant"))
+   # results.coef1$order <- ifelse(results.coef1$point == "Significant",1,ifelse(results.coef1$point == "Modification Protein",2,3))
+    results.coef1$order <- ifelse(results.coef1$point == "Modification Protein",1,ifelse(results.coef1$point == "Significant",2,3))
     key = results.coef1$Gene_ID
     
     
@@ -2351,9 +2353,9 @@ server <- function(input, output){
     
     class(M) = "numeric"
     
-    observeEvent(input$tst,{
-      print(M)
-    })
+   # observeEvent(input$tst,{
+  #    print(M)
+  #  })
     
     ####Limma####
   
